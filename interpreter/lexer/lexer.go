@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"fmt"
 	"go-learning/interpreter/token"
 )
 
@@ -37,8 +36,6 @@ func (lexer *Lexer) NextToken() token.Token {
 
 	lexer.skipWhitespace()
 
-	fmt.Printf("currentChar=%q", lexer.currentChar)
-
 	switch lexer.currentChar {
 	case '=':
 		currentToken = createToken(token.ASSIGN, lexer.currentChar)
@@ -66,8 +63,6 @@ func (lexer *Lexer) NextToken() token.Token {
 			currentToken.Type = token.INT
 			return currentToken
 		} else {
-			fmt.Printf("readPosition=%d", lexer.readPosition)
-			fmt.Printf("currentChar=%b", lexer.currentChar)
 			currentToken = createToken(token.ILLEGAL, lexer.currentChar)
 		}
 	}
