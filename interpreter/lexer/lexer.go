@@ -6,54 +6,58 @@ import (
 
 type Lexer struct {
 	input        string
-	position     int  // current position in input (points to current char)
-	readPosition int  // current reading position in input (after current char)
-	ch           byte // current char under examination
+	position     int  // current position in input (points to current currentChar)
+	readPosition int  // current reading position in input (after current currentChar)
+	currentChar  byte // current currentChar under examination
 }
 
 func New(input string) *Lexer {
-	l := &Lexer{input: input}
-	l.readChar()
-	return l
+	lexer := &Lexer{input: input}
+	lexer.readCurrentChar()
+	return lexer
 }
 
-func (l *Lexer) readChar() {
-	if l.readPosition >= len(l.input) {
-		l.ch = 0
+func (lexer *Lexer) readCurrentChar() {
+	lexer.currentChar = lexer.input[lexer.readPosition]
+}
+
+func (lexer *Lexer) readNextChar() {
+	lexer.readPosition += 1
+	if lexer.readPosition >= len(lexer.input) {
+		lexer.currentChar = 0
 	} else {
-		l.ch = l.input[l.readPosition]
+		lexer.currentChar = lexer.input[lexer.readPosition]
 	}
-	l.position = l.readPosition
-	l.readPosition += 1
+	lexer.position = lexer.readPosition
 }
 
-func (l *Lexer) NextToken() token.Token {
-	var tok token.Token
-	switch l.ch {
+func (lexer *Lexer) NextToken() token.Token {
+	var currentToken token.Token
+	switch lexer.currentChar {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		currentToken = createToken(token.ASSIGN, lexer.currentChar)
 	case ';':
-		tok = newToken(token.SEMICOLON, l.ch)
+		currentToken = createToken(token.SEMICOLON, lexer.currentChar)
 	case '(':
-		tok = newToken(token.LPAREN, l.ch)
+		currentToken = createToken(token.LPAREN, lexer.currentChar)
 	case ')':
-		tok = newToken(token.RPAREN, l.ch)
+		currentToken = createToken(token.RPAREN, lexer.currentChar)
 	case ',':
-		tok = newToken(token.COMMA, l.ch)
+		currentToken = createToken(token.COMMA, lexer.currentChar)
 	case '+':
-		tok = newToken(token.PLUS, l.ch)
+		currentToken = createToken(token.PLUS, lexer.currentChar)
 	case '{':
-		tok = newToken(token.LBRACE, l.ch)
+		currentToken = createToken(token.LBRACE, lexer.currentChar)
 	case '}':
-		tok = newToken(token.RBRACE, l.ch)
+		currentToken = createToken(token.RBRACE, lexer.currentChar)
 	case 0:
-		tok.Literal = ""
-		tok.Type = token.EOF
+		currentToken.Literal = ""
+		currentToken.Type = token.EOF
 	}
-	l.readChar()
-	return tok
+	lexer.readNextChar()
+	return currentToken
 }
 
-func newToken(tokenType token.TokenType, ch byte) token.Token {
-	return token.Token{Type: tokenType, Literal: string(ch)}
+func createToken(tokenType token.TokenType, currentChar byte) token.Token {
+	return token.Token{Type: tokenType, Literal: string(currentChar)}
 }
