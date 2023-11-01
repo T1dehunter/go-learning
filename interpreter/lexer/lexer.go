@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"go-learning/interpreter/token"
 )
 
@@ -33,6 +34,11 @@ func (lexer *Lexer) readNextChar() {
 
 func (lexer *Lexer) NextToken() token.Token {
 	var currentToken token.Token
+
+	lexer.skipWhitespace()
+
+	fmt.Printf("currentChar=%q", lexer.currentChar)
+
 	switch lexer.currentChar {
 	case '=':
 		currentToken = createToken(token.ASSIGN, lexer.currentChar)
@@ -50,12 +56,53 @@ func (lexer *Lexer) NextToken() token.Token {
 		currentToken = createToken(token.LBRACE, lexer.currentChar)
 	case '}':
 		currentToken = createToken(token.RBRACE, lexer.currentChar)
-	case 0:
-		currentToken.Literal = ""
-		currentToken.Type = token.EOF
+	default:
+		if isLetter(lexer.currentChar) {
+			currentToken.Literal = lexer.readIdentifier()
+			currentToken.Type = token.LookupIdent(currentToken.Literal)
+			return currentToken
+		} else if isDigit(lexer.currentChar) {
+			currentToken.Literal = lexer.readNumber()
+			currentToken.Type = token.INT
+			return currentToken
+		} else {
+			fmt.Printf("readPosition=%d", lexer.readPosition)
+			fmt.Printf("currentChar=%b", lexer.currentChar)
+			currentToken = createToken(token.ILLEGAL, lexer.currentChar)
+		}
 	}
 	lexer.readNextChar()
 	return currentToken
+}
+
+func (lexer *Lexer) skipWhitespace() {
+	for lexer.currentChar == ' ' || lexer.currentChar == '\t' || lexer.currentChar == '\n' || lexer.currentChar == '\r' {
+		lexer.readNextChar()
+	}
+}
+
+func (lexer *Lexer) readIdentifier() string {
+	position := lexer.position
+	for isLetter(lexer.currentChar) {
+		lexer.readNextChar()
+	}
+	return lexer.input[position:lexer.position]
+}
+
+func (lexer *Lexer) readNumber() string {
+	position := lexer.position
+	for isDigit(lexer.currentChar) {
+		lexer.readNextChar()
+	}
+	return lexer.input[position:lexer.position]
+}
+
+func isLetter(char byte) bool {
+	return 'a' <= char && char <= 'z' || 'A' <= char && char <= 'Z' || char == '_'
+}
+
+func isDigit(char byte) bool {
+	return '0' <= char && char <= '9'
 }
 
 func createToken(tokenType token.TokenType, currentChar byte) token.Token {
