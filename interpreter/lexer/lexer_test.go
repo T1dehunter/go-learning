@@ -5,13 +5,14 @@ import (
 	"testing"
 )
 
-func TestLexer(test *testing.T) {
-	TestParseChars(test)
-	TestParseCodeBlock(test)
+func TestLexer(testFramework *testing.T) {
+	TestParseChars(testFramework)
+	TestParseCodeBlock(testFramework)
+	TestParseIfStatement(testFramework)
 }
 
-func TestParseChars(test *testing.T) {
-	input := "=+(){},;"
+func TestParseChars(testFramework *testing.T) {
+	input := "=+-!*/<>(){},;"
 
 	tests := []struct {
 		expectedType    token.TokenType
@@ -19,33 +20,28 @@ func TestParseChars(test *testing.T) {
 	}{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
+		{token.MINUS, "-"},
+		{token.BANG, "!"},
+		{token.ASTERISK, "*"},
+		{token.SLASH, "/"},
+		{token.LT, "<"},
+		{token.GT, ">"},
 		{token.LPAREN, "("},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
 		{token.RBRACE, "}"},
 		{token.COMMA, ","},
 		{token.SEMICOLON, ";"},
+
 		//{token.EOF, ""},
 	}
 
 	lexer := New(input)
 
-	for index, testToken := range tests {
-		nextToken := lexer.NextToken()
-
-		if nextToken.Type != testToken.expectedType {
-			test.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q", index, testToken.expectedType, nextToken.Type)
-		}
-
-		if nextToken.Literal != testToken.expectedLiteral {
-			test.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q", index, testToken.expectedLiteral, nextToken.Literal)
-		}
-
-	}
-
+	runTests(lexer, tests, testFramework)
 }
 
-func TestParseCodeBlock(test *testing.T) {
+func TestParseCodeBlock(testFramework *testing.T) {
 	input := `
 		let five = 5;
 		let ten = 10;
@@ -104,17 +100,57 @@ func TestParseCodeBlock(test *testing.T) {
 
 	lexer := New(input)
 
+	runTests(lexer, tests, testFramework)
+}
+
+func TestParseIfStatement(testFramework *testing.T) {
+	input := `
+		if (5 < 10) {
+			return true
+		} else {
+			return false
+		}
+	`
+
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.INT, "5"},
+		{token.LT, "<"},
+		{token.INT, "10"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.TRUE, "true"},
+		{token.RBRACE, "}"},
+		{token.ELSE, "else"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.FALSE, "false"},
+	}
+
+	lexer := New(input)
+
+	runTests(lexer, tests, testFramework)
+}
+
+func runTests(lexer *Lexer, tests []struct {
+	expectedType    token.TokenType
+	expectedLiteral string
+}, testFramework *testing.T) {
 	for index, testToken := range tests {
 		nextToken := lexer.NextToken()
 
 		if nextToken.Type != testToken.expectedType {
-			test.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q", index, testToken.expectedType, nextToken.Type)
+			testFramework.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q", index, testToken.expectedType, nextToken.Type)
 		}
 
 		if nextToken.Literal != testToken.expectedLiteral {
-			test.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q", index, testToken.expectedLiteral, nextToken.Literal)
+			testFramework.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q", index, testToken.expectedLiteral, nextToken.Literal)
 		}
 
 	}
-
 }

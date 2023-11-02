@@ -39,6 +39,20 @@ func (lexer *Lexer) NextToken() token.Token {
 	switch lexer.currentChar {
 	case '=':
 		currentToken = createToken(token.ASSIGN, lexer.currentChar)
+	case '+':
+		currentToken = createToken(token.PLUS, lexer.currentChar)
+	case '-':
+		currentToken = createToken(token.MINUS, lexer.currentChar)
+	case '!':
+		currentToken = createToken(token.BANG, lexer.currentChar)
+	case '*':
+		currentToken = createToken(token.ASTERISK, lexer.currentChar)
+	case '/':
+		currentToken = createToken(token.SLASH, lexer.currentChar)
+	case '<':
+		currentToken = createToken(token.LT, lexer.currentChar)
+	case '>':
+		currentToken = createToken(token.GT, lexer.currentChar)
 	case ';':
 		currentToken = createToken(token.SEMICOLON, lexer.currentChar)
 	case '(':
@@ -47,8 +61,6 @@ func (lexer *Lexer) NextToken() token.Token {
 		currentToken = createToken(token.RPAREN, lexer.currentChar)
 	case ',':
 		currentToken = createToken(token.COMMA, lexer.currentChar)
-	case '+':
-		currentToken = createToken(token.PLUS, lexer.currentChar)
 	case '{':
 		currentToken = createToken(token.LBRACE, lexer.currentChar)
 	case '}':
@@ -77,19 +89,21 @@ func (lexer *Lexer) skipWhitespace() {
 }
 
 func (lexer *Lexer) readIdentifier() string {
-	position := lexer.position
+	identifierStartChar := lexer.position
 	for isLetter(lexer.currentChar) {
 		lexer.readNextChar()
 	}
-	return lexer.input[position:lexer.position]
+	identifierEndChar := lexer.position
+	return lexer.input[identifierStartChar:identifierEndChar]
 }
 
 func (lexer *Lexer) readNumber() string {
-	position := lexer.position
+	numberStartChar := lexer.position
 	for isDigit(lexer.currentChar) {
 		lexer.readNextChar()
 	}
-	return lexer.input[position:lexer.position]
+	numberEndChar := lexer.position
+	return lexer.input[numberStartChar:numberEndChar]
 }
 
 func isLetter(char byte) bool {
