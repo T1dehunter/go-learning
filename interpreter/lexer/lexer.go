@@ -31,6 +31,13 @@ func (lexer *Lexer) readNextChar() {
 	lexer.position = lexer.readPosition
 }
 
+func (lexer *Lexer) peekNextChar() byte {
+	if lexer.readPosition >= len(lexer.input) {
+		return 0
+	}
+	return lexer.input[lexer.readPosition+1]
+}
+
 func (lexer *Lexer) NextToken() token.Token {
 	var currentToken token.Token
 
@@ -38,13 +45,29 @@ func (lexer *Lexer) NextToken() token.Token {
 
 	switch lexer.currentChar {
 	case '=':
-		currentToken = createToken(token.ASSIGN, lexer.currentChar)
+		if lexer.peekNextChar() == '=' {
+			currentChar := lexer.currentChar
+			lexer.readNextChar()
+			nextChar := lexer.currentChar
+			literal := string(currentChar) + string(nextChar)
+			currentToken = token.Token{Type: token.EQUAL, Literal: literal}
+		} else {
+			currentToken = createToken(token.ASSIGN, lexer.currentChar)
+		}
 	case '+':
 		currentToken = createToken(token.PLUS, lexer.currentChar)
 	case '-':
 		currentToken = createToken(token.MINUS, lexer.currentChar)
 	case '!':
-		currentToken = createToken(token.BANG, lexer.currentChar)
+		if lexer.peekNextChar() == '=' {
+			currentChar := lexer.currentChar
+			lexer.readNextChar()
+			nextChar := lexer.currentChar
+			literal := string(currentChar) + string(nextChar)
+			currentToken = token.Token{Type: token.NOT_EQUAL, Literal: literal}
+		} else {
+			currentToken = createToken(token.BANG, lexer.currentChar)
+		}
 	case '*':
 		currentToken = createToken(token.ASTERISK, lexer.currentChar)
 	case '/':

@@ -12,7 +12,7 @@ func TestLexer(testFramework *testing.T) {
 }
 
 func TestParseChars(testFramework *testing.T) {
-	input := "=+-!*/<>(){},;"
+	input := "=+-!*/<>(){},;==!="
 
 	tests := []struct {
 		expectedType    token.TokenType
@@ -32,6 +32,8 @@ func TestParseChars(testFramework *testing.T) {
 		{token.RBRACE, "}"},
 		{token.COMMA, ","},
 		{token.SEMICOLON, ";"},
+		{token.EQUAL, "=="},
+		{token.NOT_EQUAL, "!="},
 
 		//{token.EOF, ""},
 	}
