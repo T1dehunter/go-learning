@@ -88,6 +88,9 @@ func (lexer *Lexer) NextToken() token.Token {
 		currentToken = createToken(token.LBRACE, lexer.currentChar)
 	case '}':
 		currentToken = createToken(token.RBRACE, lexer.currentChar)
+	case 0:
+		currentToken.Literal = ""
+		currentToken.Type = token.EOF
 	default:
 		if isLetter(lexer.currentChar) {
 			currentToken.Literal = lexer.readIdentifier()

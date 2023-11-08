@@ -97,7 +97,7 @@ func TestParseCodeBlock(testFramework *testing.T) {
 		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
 
-		//{token.EOF, ""},
+		{token.EOF, ""},
 	}
 
 	lexer := New(input)
