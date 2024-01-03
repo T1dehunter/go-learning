@@ -16,6 +16,7 @@ type Expression interface {
 	expressionNode()
 }
 
+// Program data
 type Program struct {
 	Statements []Statement
 }
@@ -28,6 +29,7 @@ func (p *Program) TokenLiteral() string {
 	}
 }
 
+// LetStatement data
 type LetStatement struct {
 	Token token.Token
 	Name  *Identifier
@@ -42,6 +44,7 @@ func (letStatement *LetStatement) TokenLiteral() string {
 	return letStatement.Token.Literal
 }
 
+// Identifier data
 type Identifier struct {
 	Token token.Token
 	Value string
@@ -53,4 +56,18 @@ func (identifier *Identifier) expressionNode() {
 
 func (identifier *Identifier) TokenLiteral() string {
 	return identifier.Token.Literal
+}
+
+// ReturnStatement data
+type ReturnStatement struct {
+	Token       token.Token
+	ReturnValue Expression
+}
+
+func (returnStmt *ReturnStatement) statementNode() {
+
+}
+
+func (returnStmt *ReturnStatement) TokenLiteral() string {
+	return returnStmt.Token.Literal
 }
