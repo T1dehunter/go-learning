@@ -46,11 +46,8 @@ func (lexer *Lexer) NextToken() token.Token {
 	switch lexer.currentChar {
 	case '=':
 		if lexer.peekNextChar() == '=' {
-			currentChar := lexer.currentChar
 			lexer.readNextChar()
-			nextChar := lexer.currentChar
-			literal := string(currentChar) + string(nextChar)
-			currentToken = token.Token{Type: token.EQUAL, Literal: literal}
+			currentToken = token.Token{Type: token.EQUAL, Literal: token.EQUAL}
 		} else {
 			currentToken = createToken(token.ASSIGN, lexer.currentChar)
 		}
