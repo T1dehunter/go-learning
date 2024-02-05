@@ -5,14 +5,34 @@ import (
 	"go-learning/interpreter/lexer"
 	"go-learning/interpreter/parser/ast"
 	"go-learning/interpreter/token"
+	"strconv"
 )
 
+type prefixParseFn func() ast.Expression
+
+type infixParseFn func(ast.Expression) ast.Expression
+
 type Parser struct {
-	lexer     *lexer.Lexer
+	lexer  *lexer.Lexer
+	errors []string
+
 	curToken  token.Token
 	nextToken token.Token
-	errors    []string
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
+
+const (
+	_ int = iota
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+)
 
 func New(lexer *lexer.Lexer) *Parser {
 	parser := &Parser{lexer: lexer, errors: []string{}}
@@ -20,7 +40,45 @@ func New(lexer *lexer.Lexer) *Parser {
 	parser.parseNextToken()
 	parser.parseNextToken()
 
+	parser.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	parser.registerPrefix(token.IDENT, parser.parseIdentifier)
+	parser.registerPrefix(token.INT, parser.parseIntegerLiteral)
+	parser.registerPrefix(token.BANG, parser.parsePrefixExpression)
+	parser.registerPrefix(token.MINUS, parser.parsePrefixExpression)
+
 	return parser
+}
+
+func (parser *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: parser.curToken, Value: parser.curToken.Literal}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+
+	return lit
+}
+
+func (parser *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    parser.curToken,
+		Operator: parser.curToken.Literal,
+	}
+
+	parser.parseNextToken()
+
+	expression.Right = parser.parseExpression(PREFIX)
+
+	return expression
 }
 
 func (parser *Parser) Errors() []string {
@@ -59,7 +117,7 @@ func (parser *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return parser.parseReturnStatement()
 	default:
-		return nil
+		return parser.parseExpressionStatement()
 	}
 }
 
@@ -98,6 +156,27 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+func (parser *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := parser.prefixParseFns[parser.curToken.Type]
+	if prefix == nil {
+		parser.noPrefixParseFnError(parser.curToken.Type)
+		return nil
+	}
+	leftExp := prefix()
+	return leftExp
+}
+
+func (parser *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	statement := &ast.ExpressionStatement{Token: parser.curToken}
+	statement.Expression = parser.parseExpression(LOWEST)
+
+	if parser.nextTokenIs(token.SEMICOLON) {
+		parser.parseNextToken()
+	}
+
+	return statement
+}
+
 func (parser *Parser) curTokenIs(token token.TokenType) bool {
 	return parser.curToken.Type == token
 }
@@ -116,4 +195,17 @@ func (parser *Parser) expectNext(token token.TokenType) bool {
 		parser.addError(token)
 		return false
 	}
+}
+
+func (parser *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	parser.prefixParseFns[tokenType] = fn
+}
+
+func (parser *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	parser.infixParseFns[tokenType] = fn
+}
+
+func (parser *Parser) noPrefixParseFnError(tokenType token.TokenType) {
+	message := fmt.Sprintf("no prefix parse function for %s found", tokenType)
+	parser.errors = append(parser.errors, message)
 }
