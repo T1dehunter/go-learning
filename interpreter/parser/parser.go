@@ -300,24 +300,27 @@ func (parser *Parser) parseStatement() ast.Statement {
 }
 
 func (parser *Parser) parseLetStatement() *ast.LetStatement {
-	statement := &ast.LetStatement{Token: parser.curToken}
+	stmt := &ast.LetStatement{Token: parser.curToken}
 
 	if !parser.expectNext(token.IDENT) {
 		return nil
 	}
 
-	statement.Name = &ast.Identifier{Token: parser.curToken, Value: parser.curToken.Literal}
+	stmt.Name = &ast.Identifier{Token: parser.curToken, Value: parser.curToken.Literal}
 
 	if !parser.expectNext(token.ASSIGN) {
 		return nil
 	}
 
-	//TODO: skip until semicolon will be done
-	for !parser.curTokenIs(token.SEMICOLON) {
+	parser.parseNextToken()
+
+	stmt.Value = parser.parseExpression(LOWEST)
+
+	if parser.nextTokenIs(token.SEMICOLON) {
 		parser.parseNextToken()
 	}
 
-	return statement
+	return stmt
 }
 
 func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
@@ -325,9 +328,9 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 	parser.parseNextToken()
 
-	// TODO: We're skipping the expressions until we
-	// encounter a semicolon
-	for !parser.curTokenIs(token.SEMICOLON) {
+	stmt.ReturnValue = parser.parseExpression(LOWEST)
+
+	if parser.nextTokenIs(token.SEMICOLON) {
 		parser.parseNextToken()
 	}
 
