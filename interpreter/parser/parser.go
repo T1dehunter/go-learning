@@ -50,6 +50,7 @@ func New(lexer *lexer.Lexer) *Parser {
 	parser.registerPrefix(token.LPAREN, parser.parseGroupedExpression)
 	parser.registerPrefix(token.IF, parser.parseIfExpression)
 	//parser.registerPrefix(token.ELSE, parser.parseIfExpression)
+	parser.registerPrefix(token.FUNCTION, parser.parseFunctionLiteral)
 
 	parser.infixParseFns = make(map[token.TokenType]infixParseFn)
 	parser.registerInfix(token.PLUS, parser.parseInfixExpression)
@@ -60,6 +61,7 @@ func New(lexer *lexer.Lexer) *Parser {
 	parser.registerInfix(token.NOT_EQUAL, parser.parseInfixExpression)
 	parser.registerInfix(token.LT, parser.parseInfixExpression)
 	parser.registerInfix(token.GT, parser.parseInfixExpression)
+	parser.registerInfix(token.LPAREN, parser.parseCallExpression)
 
 	return parser
 }
@@ -177,6 +179,84 @@ func (parser *Parser) parseBlockStatement() *ast.BlockStatement {
 	}
 
 	return block
+}
+
+func (parser *Parser) parseFunctionLiteral() ast.Expression {
+	funcLietral := &ast.FunctionLiteral{Token: parser.curToken}
+
+	if !parser.expectNext(token.LPAREN) {
+		return nil
+	}
+
+	funcLietral.Parameters = parser.parseFunctionParameters()
+
+	if !parser.expectNext(token.LBRACE) {
+		return nil
+	}
+
+	funcLietral.Body = parser.parseBlockStatement()
+
+	return funcLietral
+}
+
+func (parser *Parser) parseFunctionParameters() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+
+	if parser.nextTokenIs(token.RPAREN) {
+		parser.parseNextToken()
+		return identifiers
+	}
+
+	parser.parseNextToken()
+
+	ident := &ast.Identifier{Token: parser.curToken, Value: parser.curToken.Literal}
+
+	identifiers = append(identifiers, ident)
+
+	for parser.nextTokenIs(token.COMMA) {
+		// skip comma
+		parser.parseNextToken()
+		// parse next identifier
+		parser.parseNextToken()
+		ident := &ast.Identifier{Token: parser.curToken, Value: parser.curToken.Literal}
+		identifiers = append(identifiers, ident)
+	}
+
+	if !parser.expectNext(token.RPAREN) {
+		return nil
+	}
+
+	return identifiers
+}
+
+func (parser *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{Token: parser.curToken, Function: function}
+	exp.Arguments = parser.parseCallArguments()
+	return exp
+}
+
+func (parser *Parser) parseCallArguments() []ast.Expression {
+	args := []ast.Expression{}
+
+	if parser.nextTokenIs(token.RPAREN) {
+		parser.parseNextToken()
+		return args
+	}
+
+	parser.parseNextToken()
+	args = append(args, parser.parseExpression(LOWEST))
+
+	for parser.nextTokenIs(token.COMMA) {
+		parser.parseNextToken()
+		parser.parseNextToken()
+		args = append(args, parser.parseExpression(LOWEST))
+	}
+
+	if !parser.expectNext(token.RPAREN) {
+		return nil
+	}
+
+	return args
 }
 
 func (parser *Parser) Errors() []string {
@@ -330,6 +410,7 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:     SUM,
 	token.SLASH:     PRODUCT,
 	token.ASTERISK:  PRODUCT,
+	token.LPAREN:    CALL,
 }
 
 func (parser *Parser) nextTokenPrecedence() int {

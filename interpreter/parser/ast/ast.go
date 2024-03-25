@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"go-learning/interpreter/token"
+	"strings"
 )
 
 type Node interface {
@@ -256,6 +257,56 @@ func (blockStmt *BlockStatement) String() string {
 	for _, s := range blockStmt.Statements {
 		out.WriteString(s.String())
 	}
+
+	return out.String()
+}
+
+// FunctionLiteral data
+type FunctionLiteral struct {
+	Token      token.Token // The 'fn' token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fl *FunctionLiteral) expressionNode()      {}
+func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FunctionLiteral) String() string {
+	params := []string{}
+	for _, p := range fl.Parameters {
+		params = append(params, p.String())
+	}
+
+	var out bytes.Buffer
+	out.WriteString(fl.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+// CallExpression data
+type CallExpression struct {
+	Token     token.Token // The '(' token
+	Function  Expression  // Identifier or FunctionLiteral
+	Arguments []Expression
+}
+
+func (callExpr *CallExpression) expressionNode()      {}
+func (callExpr *CallExpression) TokenLiteral() string { return callExpr.Token.Literal }
+func (callExpr *CallExpression) String() string {
+	var out bytes.Buffer
+
+	args := []string{}
+	for _, a := range callExpr.Arguments {
+		args = append(args, a.String())
+	}
+
+	out.WriteString(callExpr.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteString(")")
 
 	return out.String()
 }
