@@ -6,79 +6,84 @@ import (
 )
 
 type Token struct {
-	tokenType  string
-	tokenValue string
+	tokenType    string
+	tokenValue   string
+	coveredChars []string
 }
 
 func isMatch(str string, pattern string) bool {
-	patternTokens := parsePatternTokens(pattern)
-	isAllSimpleTokens := all(patternTokens, func(token Token) bool {
-		return token.tokenType == "simple"
+	tokens := parsePatternTokens(pattern)
+	isAllZeroOrMoreAnyCharsTokens := all(tokens, func(token Token) bool {
+		return token.tokenType == "zeroOrMoreAnyChar"
+
 	})
-	if isAllSimpleTokens && len(str) < len(patternTokens) {
+	if isAllZeroOrMoreAnyCharsTokens {
+		return true
+	}
+
+	isOneZeroOrMoreChar := len(tokens) == 1 && tokens[0].tokenType == "zeroOrMoreChar"
+	if isOneZeroOrMoreChar && !strings.Contains(str, tokens[0].tokenValue) {
+		return true
+	}
+	isAllCharsTokens := all(tokens, func(token Token) bool {
+		return token.tokenType == "char"
+	})
+	if isAllCharsTokens && len(str) != len(tokens) {
 		return false
 	}
-	fmt.Println("patternTokens: ", patternTokens)
-	var pointer int
-	var index int
-	for tokenIdx, token := range patternTokens {
-		index = tokenIdx
-		if token.tokenType == "simple" {
-			if pointer >= len(str) {
-				break
-			}
-			if string(str[pointer]) != token.tokenValue {
-				return false
-			}
-			pointer++
+	allCharTokens := filter(tokens, func(token Token) bool {
+		return token.tokenType == "char"
+	})
+	if len(allCharTokens) > len(str) {
+		return false
+	}
+	var charPointer int
+	for idx := range tokens {
+		token := &tokens[idx]
+		if charPointer >= len(str) {
+			break
 		}
-		if token.tokenType == "zeroOrMoreChar" {
-			if pointer >= len(str) {
-				break
-			}
-			remainStr := str[pointer:len(str)]
-			if !strings.Contains(remainStr, token.tokenValue) {
-				continue
-			}
-			if string(str[pointer]) != token.tokenValue {
+		currentChar := string(str[charPointer])
+		switch token.tokenType {
+		case "char":
+			if currentChar == token.tokenValue {
+				token.coveredChars = append(token.coveredChars, currentChar)
+				charPointer++
+			} else {
 				return false
 			}
-			for string(str[pointer]) == token.tokenValue {
-				pointer++
-				if pointer >= len(str) {
+		case "zeroOrMoreChar":
+			for string(str[charPointer]) == token.tokenValue {
+				fmt.Println("charPointer charPointer : ", string(str[charPointer]))
+				token.coveredChars = append(token.coveredChars, string(str[charPointer]))
+				if charPointer < len(str) {
+					charPointer++
+				}
+				if charPointer == len(str) {
 					break
 				}
 			}
-		}
-		if token.tokenType == "zeroOrMoreAnyChar" {
-			if pointer >= len(str) {
-				break
+		case "zeroOrMoreAnyChar":
+			charPointer = len(str)
+		case "anySingleChar":
+			if len(str) > 1 && len(tokens) == 1 {
+				return false
 			}
-			if tokenIdx == 0 && len(patternTokens) > 1 {
-				continue
-			}
-			pointer = len(str)
-			continue
-		}
-		if token.tokenType == "anySingleChar" {
-			if pointer >= len(str) {
-				break
-			}
-			pointer++
+			token.coveredChars = append(token.coveredChars, currentChar)
+			charPointer++
 		}
 	}
-	fmt.Println("index", index)
-	isAllStrMatched := pointer >= len(str)
-	return isAllStrMatched
+	coveredChars := calculateCoveredChars(tokens)
+	return coveredChars == len(str)
 }
 
 func parsePatternTokens(pattern string) []Token {
 	var tokens []Token
 	for index, char := range pattern {
 		currentChar := string(char)
-		isSimpleChar := isSimpleChar(currentChar, index, pattern)
-		if isSimpleChar {
-			tokens = append(tokens, Token{tokenType: "simple", tokenValue: currentChar})
+		isChar := isChar(currentChar, index, pattern)
+		if isChar {
+			tokens = append(tokens, Token{tokenType: "char", tokenValue: currentChar})
 			continue
 		}
 		isZeroOrMorePrecedingChar := isZeroOrMorePrecedingChar(currentChar, index, pattern)
@@ -112,7 +117,17 @@ func all(slice []Token, condition func(token Token) bool) bool {
 	return true
 }
 
-func isSimpleChar(char string, charIdx int, str string) bool {
+func filter(slice []Token, condition func(token Token) bool) []Token {
+	var filtered []Token
+	for _, value := range slice {
+		if condition(value) {
+			filtered = append(filtered, value)
+		}
+	}
+	return filtered
+}
+
+func isChar(char string, charIdx int, str string) bool {
 	isChar := char != "*" && char != "."
 	if !isChar {
 		return false
@@ -174,4 +189,12 @@ func isAnySingleChar(char string, charIdx int, str string) bool {
 		return true
 	}
 	return false
+}
+
+func calculateCoveredChars(tokens []Token) int {
+	var countCoveredChars int
+	for _, token := range tokens {
+		countCoveredChars += len(token.coveredChars)
+	}
+	return countCoveredChars
 }

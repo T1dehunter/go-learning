@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestIsMatch(testFramework *testing.T) {
 	tests := []struct {
@@ -10,6 +12,8 @@ func TestIsMatch(testFramework *testing.T) {
 	}{
 		{"aa", "a", false},
 		{"aa", "a*", true},
+		{"bb", "a*", true},
+		{"aaa", "a*a", true},
 		{"ab", ".*", true},
 		{"aab", "c*a*b", true},
 		{"mississippi", "mis*is*p*.", false},
@@ -17,7 +21,11 @@ func TestIsMatch(testFramework *testing.T) {
 		{"aaa", "aaaa", false},
 		{"aaa", "a.a", true},
 		{"aa", ".", false},
-		//{"a", "ab*a", false},
+		{"a", "ab*a", false},
+		{"a", "ab*", true},
+		{"aa", ".a", true},
+		{"aaa", ".a", false},
+		{"abcd", "d*", false},
 	}
 
 	for index, testData := range tests {
