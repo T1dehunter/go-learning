@@ -3,6 +3,7 @@ package repl
 import (
 	"bufio"
 	"fmt"
+	"go-learning/interpreter/evaluator"
 	"go-learning/interpreter/lexer"
 	"go-learning/interpreter/parser"
 	"io"
@@ -10,13 +11,12 @@ import (
 
 const PROMPT = ">>> "
 
-func Start(input io.Reader, out io.Writer) {
-	scanner := bufio.NewScanner(input)
+func Start(in io.Reader, out io.Writer) {
+	scanner := bufio.NewScanner(in)
 
 	for {
 		fmt.Fprintf(out, PROMPT)
 		scanned := scanner.Scan()
-
 		if !scanned {
 			return
 		}
@@ -26,14 +26,16 @@ func Start(input io.Reader, out io.Writer) {
 		parser := parser.New(lexer)
 
 		program := parser.ParseProgram()
-
 		if len(parser.Errors()) != 0 {
 			printParserErrors(out, parser.Errors())
 			continue
 		}
 
-		io.WriteString(out, program.String())
-		io.WriteString(out, "\n")
+		evaluated := evaluator.Eval(program)
+		if evaluated != nil {
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
 	}
 }
 
