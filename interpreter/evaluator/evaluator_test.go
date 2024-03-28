@@ -8,10 +8,11 @@ import (
 	"go-learning/interpreter/parser"
 )
 
-func TestAll(t *testing.T) {
-	TestEvalIntegerExpression(t)
-	TestEvalBooleanExpression(t)
-	TestBangOperator(t)
+func TestAll(test *testing.T) {
+	TestEvalIntegerExpression(test)
+	TestEvalBooleanExpression(test)
+	TestBangOperator(test)
+	TestIfElseExpressions(test)
 }
 
 func TestEvalIntegerExpression(test *testing.T) {
@@ -64,7 +65,7 @@ func testIntegerObject(test *testing.T, obj object.Object, expected int64) bool 
 	return true
 }
 
-func TestEvalBooleanExpression(t *testing.T) {
+func TestEvalBooleanExpression(test *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
@@ -72,11 +73,30 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"true", true},
 		{"false", false},
 		{"!!-5", true},
+		{"true", true},
+		{"false", false},
+		{"1 < 2", true},
+		{"1 > 2", false},
+		{"1 < 1", false},
+		{"1 > 1", false},
+		{"1 == 1", true},
+		{"1 != 1", false},
+		{"1 == 2", false},
+		{"1 != 2", true},
+		{"true == true", true},
+		{"false == false", true},
+		{"true == false", false},
+		{"true != false", true},
+		{"false != true", true},
+		{"(1 < 2) == true", true},
+		{"(1 < 2) == false", false},
+		{"(1 > 2) == true", false},
+		{"(1 > 2) == false", true},
 	}
 
-	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		testBooleanObject(t, evaluated, tt.expected)
+	for _, testData := range tests {
+		evaluated := testEval(testData.input)
+		testBooleanObject(test, evaluated, testData.expected)
 	}
 }
 
@@ -111,4 +131,37 @@ func TestBangOperator(test *testing.T) {
 		evaluated := testEval(testData.input)
 		testBooleanObject(test, evaluated, testData.expected)
 	}
+}
+
+func TestIfElseExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"if (true) { 10 }", 10},
+		{"if (false) { 10 }", nil},
+		{"if (1) { 10 }", 10},
+		{"if (1 < 2) { 10 }", 10},
+		{"if (1 > 2) { 10 }", nil},
+		{"if (1 > 2) { 10 } else { 20 }", 20},
+		{"if (1 < 2) { 10 } else { 20 }", 10},
+	}
+
+	for _, testData := range tests {
+		evaluated := testEval(testData.input)
+		integer, ok := testData.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNullObject(t, evaluated)
+		}
+	}
+}
+
+func testNullObject(t *testing.T, obj object.Object) bool {
+	if obj != NULL {
+		t.Errorf("object is not NULL. got=%T (%+v)", obj, obj)
+		return false
+	}
+	return true
 }

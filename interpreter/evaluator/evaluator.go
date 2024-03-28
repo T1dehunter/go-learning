@@ -31,6 +31,14 @@ func Eval(node ast.Node) object.Object {
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
 
+	// Block statements
+	case *ast.BlockStatement:
+		return evalStatements(node.Statements)
+
+	// if-else expressions
+	case *ast.IfExpression:
+		return evalIfExpression(node)
+
 	// Identifiers
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
@@ -79,8 +87,37 @@ func evalInfixExpression(
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
+	case operator == "==":
+		return nativeBoolToBooleanObject(left == right)
+	case operator == "!=":
+		return nativeBoolToBooleanObject(left != right)
 	default:
 		return NULL
+	}
+}
+
+func evalIfExpression(ifExp *ast.IfExpression) object.Object {
+	condition := Eval(ifExp.Condition)
+
+	if isTruthy(condition) {
+		return Eval(ifExp.Consequence)
+	} else if ifExp.Alternative != nil {
+		return Eval(ifExp.Alternative)
+	} else {
+		return NULL
+	}
+}
+
+func isTruthy(obj object.Object) bool {
+	switch obj {
+	case NULL:
+		return false
+	case TRUE:
+		return true
+	case FALSE:
+		return false
+	default:
+		return true
 	}
 }
 
@@ -100,6 +137,14 @@ func evalIntegerInfixExpression(
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
 		return &object.Integer{Value: leftVal / rightVal}
+	case "<":
+		return nativeBoolToBooleanObject(leftVal < rightVal)
+	case ">":
+		return nativeBoolToBooleanObject(leftVal > rightVal)
+	case "==":
+		return nativeBoolToBooleanObject(leftVal == rightVal)
+	case "!=":
+		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return NULL
 	}
