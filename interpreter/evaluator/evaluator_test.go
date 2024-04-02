@@ -1,6 +1,8 @@
 package evaluator
 
-import "testing"
+import (
+	"testing"
+)
 
 import (
 	"go-learning/interpreter/lexer"
@@ -13,6 +15,7 @@ func TestAll(test *testing.T) {
 	TestEvalBooleanExpression(test)
 	TestBangOperator(test)
 	TestIfElseExpressions(test)
+	TestReturnStatements(test)
 }
 
 func TestEvalIntegerExpression(test *testing.T) {
@@ -154,6 +157,90 @@ func TestIfElseExpressions(t *testing.T) {
 			testIntegerObject(t, evaluated, int64(integer))
 		} else {
 			testNullObject(t, evaluated)
+		}
+	}
+}
+
+func TestReturnStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"return 10;", 10},
+		{"return 10; 9;", 10},
+		{"return 2 * 5; 9;", 10},
+		{"9; return 2 * 5; 9;", 10},
+		{`
+			if (10 > 1) {
+			if (10 > 1) {
+			return 10;
+		}
+
+			return 1;
+		}`, 10},
+	}
+
+	for _, testData := range tests {
+		evaluated := testEval(testData.input)
+		testIntegerObject(t, evaluated, testData.expected)
+	}
+}
+
+func TestErrorHandling(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedMessage string
+	}{
+		{
+			"5 + true;",
+			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			"5 + true; 5;",
+			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			"-true",
+			"unknown operator: -BOOLEAN",
+		},
+		{
+			"true + false;",
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			"5; true + false; 5",
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			"if (10 > 1) { true + false; }",
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			`
+				if (10 > 1) {
+				  if (10 > 1) {
+					return true + false;
+				  }
+				
+				  return 1;
+				}
+				`,
+			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+	}
+
+	for _, testData := range tests {
+		evaluated := testEval(testData.input)
+
+		errObj, ok := evaluated.(*object.Error)
+		if !ok {
+			t.Errorf("no error object returned. got=%T(%+v)",
+				evaluated, evaluated)
+			continue
+		}
+
+		if errObj.Message != testData.expectedMessage {
+			t.Errorf("wrong error message. expected=%q, got=%q", testData.expectedMessage, errObj.Message)
 		}
 	}
 }
