@@ -3,29 +3,60 @@ package repl
 import (
 	"bufio"
 	"fmt"
+	"go-learning/interpreter/evaluator"
 	"go-learning/interpreter/lexer"
-	"go-learning/interpreter/token"
+	"go-learning/interpreter/parser"
 	"io"
 )
 
 const PROMPT = ">>> "
 
-func Start(input io.Reader, out io.Writer) {
-	scanner := bufio.NewScanner(input)
+func Start(in io.Reader, out io.Writer) {
+	scanner := bufio.NewScanner(in)
 
 	for {
 		fmt.Fprintf(out, PROMPT)
 		scanned := scanner.Scan()
-
 		if !scanned {
 			return
 		}
 
 		line := scanner.Text()
-		l := lexer.New(line)
+		lexer := lexer.New(line)
+		parser := parser.New(lexer)
 
-		for currentToken := l.NextToken(); currentToken.Type != token.EOF; currentToken = l.NextToken() {
-			fmt.Fprintf(out, "%+v\n", currentToken)
+		program := parser.ParseProgram()
+		if len(parser.Errors()) != 0 {
+			printParserErrors(out, parser.Errors())
+			continue
 		}
+
+		evaluated := evaluator.Eval(program)
+		if evaluated != nil {
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
+	}
+}
+
+const MONKEY_FACE = `            __,__
+   .--.  .-"     "-.  .--.
+  / .. \/  .-. .-.  \/ .. \
+ | |  '|  /   Y   \  |'  | |
+ | \   \  \ 0 | 0 /  /   / |
+  \ '- ,\.-"""""""-./, -' /
+   ''-' /_   ^ ^   _\ '-''
+       |  \._   _./  |
+       \   \ '~' /   /
+        '._ '-=-' _.'
+           '-----'
+`
+
+func printParserErrors(out io.Writer, errors []string) {
+	io.WriteString(out, MONKEY_FACE)
+	io.WriteString(out, "Woops! We ran into some monkey business here!\n")
+	io.WriteString(out, " parser errors:\n")
+	for _, msg := range errors {
+		io.WriteString(out, "\t"+msg+"\n")
 	}
 }

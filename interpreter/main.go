@@ -7,6 +7,10 @@ import (
 	"os/user"
 )
 
+// Code in this project is based on the book:
+// Writing An Interpreter In Go
+// Thorsten Ball
+// I want to thank the author for the great book and the great content.
 func main() {
 	user, err := user.Current()
 	if err != nil {
