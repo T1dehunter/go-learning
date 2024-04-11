@@ -17,26 +17,30 @@ import (
 //import "chat/app/handlers"
 
 type App struct {
-	UserService *user.UserService
-	AuthService *auth.AuthService
-	RoomService *room.RoomService
-	WebSocket   *weboscket.WebSocket
+	userService *user.UserService
+	authService *auth.AuthService
+	roomService *room.RoomService
+	wsServer    *weboscket.WebSocketServer
 }
 
 func NewApp() *App {
 	return &App{
-		UserService: user.NewUserService(),
-		AuthService: auth.NewAuthService(),
-		RoomService: room.NewRoomService(),
-		WebSocket:   weboscket.NewWebSocket(),
+		userService: user.NewUserService(),
+		authService: auth.NewAuthService(),
+		roomService: room.NewRoomService(),
+		wsServer:    weboscket.NewWebSocketServer(),
 	}
 }
 
 func (app *App) Start() {
-	http.HandleFunc("/chat", app.WebSocket.Listen)
+	http.HandleFunc("/chat", app.wsServer.Listen)
 
-	app.WebSocket.SubscribeOnUserAuth(func(message weboscket.UserAuthMessage) {
-		handlers.HandleUserAuth(message, app.UserService, app.AuthService, app.RoomService)
+	app.wsServer.SubscribeOnUserAuth(func(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserAuth(message, ws, app.userService, app.authService, app.roomService)
+	})
+
+	app.wsServer.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserJoinToRoom(message, ws, app.userService, app.roomService)
 	})
 
 	log.Println("Server started")

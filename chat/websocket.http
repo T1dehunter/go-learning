@@ -3,12 +3,20 @@
 WEBSOCKET ws://localhost:3000/chat
 
 
-### WebSocket Request with Headers
+### User auth request
 WEBSOCKET ws://localhost:3000/chat
 Content-Type: application/json
 
 {
   "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
+}
+
+### User join to room request
+WEBSOCKET ws://localhost:3000/chat
+Content-Type: application/json
+
+{
+  "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
 }
 
 ### Request with client messages

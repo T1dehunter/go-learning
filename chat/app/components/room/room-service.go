@@ -1,17 +1,25 @@
 package room
 
+import "fmt"
+
 type RoomService struct {
-	getRoomById func(id int) string
-	joinUser    func(roomId int, userId int) string
+	roomRepository *RoomRepository
 }
 
 func NewRoomService() *RoomService {
-	return &RoomService{
-		getRoomById: func(id int) string {
-			return "Room"
-		},
-		joinUser: func(roomId int, userId int) string {
-			return "User joined room"
-		},
+	return &RoomService{}
+}
+
+func (romService *RoomService) FindRoomById(id int) *Room {
+	return romService.roomRepository.FindRoomById(id)
+}
+
+func (roomService *RoomService) JoinUser(userId int, roomId int) bool {
+	room := roomService.FindRoomById(roomId)
+	if room == nil {
+		fmt.Println("Error joining user to room: room not found")
+		return false
 	}
+	room.joinUser(userId)
+	return true
 }

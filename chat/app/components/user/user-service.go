@@ -8,6 +8,6 @@ func NewUserService() *UserService {
 	return &UserService{}
 }
 
-func (userService *UserService) FindUserById(id int) string {
+func (userService *UserService) FindUserById(id int) *User {
 	return userService.userRepository.FindUserById(id)
 }
