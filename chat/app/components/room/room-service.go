@@ -23,3 +23,13 @@ func (roomService *RoomService) JoinUser(userId int, roomId int) bool {
 	room.joinUser(userId)
 	return true
 }
+
+func (roomService *RoomService) LeaveUser(userId int, roomId int) bool {
+	room := roomService.FindRoomById(roomId)
+	if room == nil {
+		fmt.Println("Error leaving user from room: room not found")
+		return false
+	}
+	room.leaveUser(userId)
+	return true
+}

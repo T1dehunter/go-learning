@@ -19,3 +19,10 @@ func (wsSender *WsSender) SendMessageToUser(connectionID int, message string) {
 		return
 	}
 }
+
+func (wsSender *WsSender) SendMessageToRoom(connectionID int, message string) {
+	if err := wsSender.connection.Close(); err != nil {
+		log.Println("Error closing connection", err)
+		return
+	}
+}

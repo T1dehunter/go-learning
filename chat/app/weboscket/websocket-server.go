@@ -12,6 +12,7 @@ type WebSocketServer struct {
 	connections           map[*websocket.Conn]bool
 	userAuthHandler       func(message UserAuthMessage, wsSender WebsocketSender)
 	userJoinToRoomHandler func(message UserJoinToRoomMessage, wsSender WebsocketSender)
+	userLeaveRoomMessage  func(message UserLeaveRoomMessage, wsSender WebsocketSender)
 }
 
 func NewWebSocketServer() *WebSocketServer {
@@ -60,6 +61,15 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 		}
 	}
 
+	var userLeaveRoomMessage UserLeaveRoomMessage
+	err = json.Unmarshal(messageData, &userLeaveRoomMessage)
+	if err == nil && userLeaveRoomMessage.Name == "user_leave_room" {
+		if wsServer.userLeaveRoomMessage != nil {
+			sender := NewWsSender(conn)
+			wsServer.userLeaveRoomMessage(userLeaveRoomMessage, sender)
+		}
+	}
+
 	if err != nil {
 		log.Println("Error unmarshalling message", err)
 	}
@@ -75,6 +85,12 @@ func (wsServer *WebSocketServer) SubscribeOnUserAuth(handler func(message UserAu
 func (wsServer *WebSocketServer) SubscribeOnUserJoinToRoom(handler func(message UserJoinToRoomMessage, ws WebsocketSender)) {
 	if wsServer.userJoinToRoomHandler == nil {
 		wsServer.userJoinToRoomHandler = handler
+	}
+}
+
+func (wsServer *WebSocketServer) SubscribeOnUserLeaveRoom(handler func(message UserLeaveRoomMessage, ws WebsocketSender)) {
+	if wsServer.userLeaveRoomMessage == nil {
+		wsServer.userLeaveRoomMessage = handler
 	}
 }
 

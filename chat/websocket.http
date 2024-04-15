@@ -1,23 +1,35 @@
+#GET http://localhost:80/api/item?id=99
+#Accept: application/json
+
+###
 ### Simple WebSocket Request
 // It is possible to send messages to server right from the Services tool window
-WEBSOCKET ws://localhost:3000/chat
+#WEBSOCKET ws://localhost:3000/chat
 
 
 ### User auth request
-WEBSOCKET ws://localhost:3000/chat
-Content-Type: application/json
-
-{
-  "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
-}
+#WEBSOCKET ws://localhost:3000/chat
+#Content-Type: application/json
+#
+#{
+#  "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
+#}
 
 ### User join to room request
 WEBSOCKET ws://localhost:3000/chat
-Content-Type: application/json
+Content-Type: application-json // Used for content highlighting only
 
+#=== wait-for-server
 {
-  "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+ "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
 }
+=== wait-for-server
+{
+ "name": "user_leave_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+}
+
+
+
 
 ### Request with client messages
 #// It is possible to specify client messages in request body. Use '===' to separate messages.

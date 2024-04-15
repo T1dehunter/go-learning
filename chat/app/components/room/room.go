@@ -18,6 +18,15 @@ func (room *Room) joinUser(userId int) {
 	room.UserIds = append(room.UserIds, userId)
 }
 
+func (room *Room) leaveUser(userId int) {
+	for userIdx, userID := range room.UserIds {
+		if userID == userId {
+			room.UserIds = append(room.UserIds[:userIdx], room.UserIds[userIdx+1:]...)
+			return
+		}
+	}
+}
+
 func contains(arr []int, target int) bool {
 	for _, item := range arr {
 		if item == target {
