@@ -10,13 +10,38 @@ import (
 	"time"
 )
 
+func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService) {
+	fmt.Printf("Handler HandleUserConnect received message -> %+v\n", message)
+
+	user := userService.FindUserById(message.Payload.UserID)
+
+	if user == nil {
+		log.Println("Error connecting user: user not found")
+		return
+	}
+
+	isAuthenticated := authService.AuthenticateUser(user, message.Payload.AccessToken)
+
+	if !isAuthenticated {
+		log.Println("Error connecting user: user is not authenticated")
+		ws.SendMessageToUser(user.Id, "You are not authenticated")
+		return
+	}
+
+	log.Println("User connected")
+
+	time.Sleep(2 * time.Second)
+
+	ws.SendMessageToUser(user.Id, "You are connected")
+}
+
 func HandleUserAuth(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService, roomService *room.RoomService) {
 	fmt.Printf("Handler HandleUserAuth received message -> %+v\n", message)
 
 	user := userService.FindUserById(message.Payload.UserID)
 
 	if user == nil {
-		log.Println("User not found")
+		log.Println("Error authenticating user: user not found")
 		return
 	}
 
@@ -41,14 +66,14 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	user := userService.FindUserById(message.Payload.UserID)
 
 	if user == nil {
-		log.Println("User not found")
+		log.Println("Error joining to room: user not found")
 		return
 	}
 
 	room := roomService.FindRoomById(message.Payload.RoomID)
 
 	if room == nil {
-		log.Println("Room not found")
+		log.Println("Error joining to room: room not found")
 		return
 	}
 
@@ -68,14 +93,14 @@ func HandleUserLeaveRoom(message weboscket.UserLeaveRoomMessage, ws weboscket.We
 	user := userService.FindUserById(message.Payload.UserID)
 
 	if user == nil {
-		log.Println("User not found")
+		log.Println("Error leaving room: user not found")
 		return
 	}
 
 	room := roomService.FindRoomById(message.Payload.RoomID)
 
 	if room == nil {
-		log.Println("Room not found")
+		log.Println("Error leaving room: room not found")
 		return
 	}
 

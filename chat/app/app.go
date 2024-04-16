@@ -35,6 +35,10 @@ func NewApp() *App {
 func (app *App) Start() {
 	http.HandleFunc("/chat", app.wsServer.Listen)
 
+	app.wsServer.SubscribeOnUserConnect(func(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserConnect(message, ws, app.userService, app.authService)
+	})
+
 	app.wsServer.SubscribeOnUserAuth(func(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender) {
 		handlers.HandleUserAuth(message, ws, app.userService, app.authService, app.roomService)
 	})

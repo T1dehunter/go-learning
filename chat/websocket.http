@@ -19,6 +19,11 @@
 WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
+{
+ "name": "user_connect", "payload": {"userID": 1, "roomID": 1, "accessToken": "Test123"}
+}
+
+###
 #=== wait-for-server
 {
  "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}

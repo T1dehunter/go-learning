@@ -1,5 +1,14 @@
 package weboscket
 
+type UserConnectMessage struct {
+	Name    string `json:"name"`
+	Payload struct {
+		UserID      int    `json:"userID"`
+		UserName    string `json:"userName"`
+		AccessToken string `json:"accessToken"`
+	}
+}
+
 type UserAuthMessage struct {
 	Name    string `json:"name"`
 	Payload struct {

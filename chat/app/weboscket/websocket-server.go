@@ -10,6 +10,7 @@ import (
 
 type WebSocketServer struct {
 	connections           map[*websocket.Conn]bool
+	userConnectHandler    func(message UserConnectMessage, wsSender WebsocketSender)
 	userAuthHandler       func(message UserAuthMessage, wsSender WebsocketSender)
 	userJoinToRoomHandler func(message UserJoinToRoomMessage, wsSender WebsocketSender)
 	userLeaveRoomMessage  func(message UserLeaveRoomMessage, wsSender WebsocketSender)
@@ -43,12 +44,21 @@ func (wsServer *WebSocketServer) Listen(w http.ResponseWriter, r *http.Request) 
 }
 
 func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData []byte) {
-	var message UserAuthMessage
-	err := json.Unmarshal(messageData, &message)
-	if err == nil && message.Name == "user_auth" {
+	var userConnectMessage UserConnectMessage
+	err := json.Unmarshal(messageData, &userConnectMessage)
+	if err == nil && userConnectMessage.Name == "user_connect" {
+		if wsServer.userConnectHandler != nil {
+			sender := NewWsSender(conn)
+			wsServer.userConnectHandler(userConnectMessage, sender)
+		}
+	}
+
+	var userAuthMessage UserAuthMessage
+	err = json.Unmarshal(messageData, &userAuthMessage)
+	if err == nil && userAuthMessage.Name == "user_auth" {
 		if wsServer.userAuthHandler != nil {
-			sender := newWsSender(conn)
-			wsServer.userAuthHandler(message, sender)
+			sender := NewWsSender(conn)
+			wsServer.userAuthHandler(userAuthMessage, sender)
 		}
 	}
 
