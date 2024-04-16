@@ -25,13 +25,13 @@ Content-Type: application-json // Used for content highlighting only
 
 ###
 #=== wait-for-server
-{
- "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
-}
-=== wait-for-server
-{
- "name": "user_leave_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
-}
+#{
+# "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+#}
+#=== wait-for-server
+#{
+# "name": "user_leave_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+#}
 
 
 

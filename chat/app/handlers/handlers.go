@@ -112,3 +112,27 @@ func HandleUserLeaveRoom(message weboscket.UserLeaveRoomMessage, ws weboscket.We
 
 	ws.SendMessageToUser(user.Id, "You left room")
 }
+
+func HandleUserSendRoomMessage(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
+	fmt.Printf("Handler HandleUserSendRoomMessage received message -> %+v\n", message)
+
+	user := userService.FindUserById(message.Payload.UserID)
+
+	if user == nil {
+		log.Println("Error sending room message: user not found")
+		return
+	}
+
+	room := roomService.FindRoomById(message.Payload.RoomID)
+
+	if room == nil {
+		log.Println("Error sending room message: room not found")
+		return
+	}
+
+	log.Println("User sent message to room")
+
+	time.Sleep(2 * time.Second)
+
+	ws.SendMessageToRoom(user.Id, "Your message sent to room")
+}

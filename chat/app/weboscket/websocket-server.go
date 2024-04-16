@@ -2,7 +2,6 @@ package weboscket
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -14,6 +13,7 @@ type WebSocketServer struct {
 	userAuthHandler       func(message UserAuthMessage, wsSender WebsocketSender)
 	userJoinToRoomHandler func(message UserJoinToRoomMessage, wsSender WebsocketSender)
 	userLeaveRoomMessage  func(message UserLeaveRoomMessage, wsSender WebsocketSender)
+	userSendRoomMessage   func(message UserSendRoomMessage, wsSender WebsocketSender)
 }
 
 func NewWebSocketServer() *WebSocketServer {
@@ -80,10 +80,26 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 		}
 	}
 
+	var userSendRoomMessage UserSendRoomMessage
+	err = json.Unmarshal(messageData, &userSendRoomMessage)
+	if err == nil && userSendRoomMessage.Name == "user_send_room_message" {
+		if wsServer.userSendRoomMessage != nil {
+			sender := NewWsSender(conn)
+			wsServer.userSendRoomMessage(userSendRoomMessage, sender)
+		}
+	}
+
 	if err != nil {
 		log.Println("Error unmarshalling message", err)
 	}
-	fmt.Println("Received message", message)
+
+	//fmt.Println("Received message", message)
+}
+
+func (wsServer *WebSocketServer) SubscribeOnUserConnect(handler func(message UserConnectMessage, ws WebsocketSender)) {
+	if wsServer.userConnectHandler == nil {
+		wsServer.userConnectHandler = handler
+	}
 }
 
 func (wsServer *WebSocketServer) SubscribeOnUserAuth(handler func(message UserAuthMessage, ws WebsocketSender)) {
@@ -101,6 +117,12 @@ func (wsServer *WebSocketServer) SubscribeOnUserJoinToRoom(handler func(message 
 func (wsServer *WebSocketServer) SubscribeOnUserLeaveRoom(handler func(message UserLeaveRoomMessage, ws WebsocketSender)) {
 	if wsServer.userLeaveRoomMessage == nil {
 		wsServer.userLeaveRoomMessage = handler
+	}
+}
+
+func (wsServer *WebSocketServer) SubscribeOnUserSendRoomMessage(handler func(message UserSendRoomMessage, ws WebsocketSender)) {
+	if wsServer.userSendRoomMessage == nil {
+		wsServer.userSendRoomMessage = handler
 	}
 }
 

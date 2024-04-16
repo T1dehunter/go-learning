@@ -51,6 +51,10 @@ func (app *App) Start() {
 		handlers.HandleUserLeaveRoom(message, ws, app.userService, app.roomService)
 	})
 
+	app.wsServer.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserSendRoomMessage(message, ws, app.userService, app.roomService)
+	})
+
 	log.Println("Server started")
 
 	log.Fatal(http.ListenAndServe(":3000", nil))
