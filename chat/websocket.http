@@ -15,23 +15,35 @@
 #  "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
 #}
 
-### User join to room request
+### connect users
 WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
 {
- "name": "user_connect", "payload": {"userID": 1, "roomID": 1, "accessToken": "Test123"}
+ "name": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
+}
+=== wait-for-server
+{
+ "name": "user_connect", "payload": {"userID": 2, "accessToken": "Test1234"}
 }
 
-###
-#=== wait-for-server
-#{
-# "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
-#}
-#=== wait-for-server
-#{
-# "name": "user_leave_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
-#}
+### join to room and send message
+WEBSOCKET ws://localhost:3000/chat
+Content-Type: application-json // Used for content highlighting only
+
+{
+ "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+}
+=== wait-for-server
+{
+ "name": "user_join_to_room", "payload": {"userID": 2, "roomID": 1, "roomName": "Room 1"}
+}
+=== wait-for-server
+{
+ "name": "room_message", "payload": {"userID": 1, "roomID": 1, "message": "Yo dudes!"}
+}
+
+
 
 
 

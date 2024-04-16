@@ -28,6 +28,13 @@ func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.Websoc
 		return
 	}
 
+	ws.AddUserToNamespace("connected_users")
+
+	if user.RoomID != nil {
+		roomName := fmt.Sprintf("room_%d", *user.RoomID)
+		ws.AddUserToNamespace(roomName)
+	}
+
 	log.Println("User connected")
 
 	time.Sleep(2 * time.Second)
@@ -78,6 +85,9 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	}
 
 	roomService.JoinUser(user.Id, room.Id)
+
+	roomName := fmt.Sprintf("room_%d", room.Id)
+	ws.AddUserToNamespace(roomName)
 
 	log.Println("User joined to room")
 
@@ -134,5 +144,7 @@ func HandleUserSendRoomMessage(message weboscket.UserSendRoomMessage, ws webosck
 
 	time.Sleep(2 * time.Second)
 
-	ws.SendMessageToRoom(user.Id, "Your message sent to room")
+	roomName := fmt.Sprintf("room_%d", room.Id)
+
+	ws.SendMessageToNamespace(roomName, message.Payload.Message)
 }

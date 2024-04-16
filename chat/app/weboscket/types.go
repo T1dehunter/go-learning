@@ -37,12 +37,15 @@ type UserLeaveRoomMessage struct {
 type UserSendRoomMessage struct {
 	Name    string `json:"name"`
 	Payload struct {
-		UserID int `json:"userID"`
-		RoomID int `json:"roomID"`
+		UserID  int    `json:"userID"`
+		RoomID  int    `json:"roomID"`
+		Message string `json:"message"`
 	} `json:"payload"`
 }
 
 type WebsocketSender interface {
 	SendMessageToUser(connectionID int, message string)
 	SendMessageToRoom(connectionID int, message string)
+	AddUserToNamespace(namespace string)
+	SendMessageToNamespace(namespace string, message string)
 }

@@ -2,22 +2,26 @@ package weboscket
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 )
 
 type WebSocketServer struct {
-	connections           map[*websocket.Conn]bool
-	userConnectHandler    func(message UserConnectMessage, wsSender WebsocketSender)
-	userAuthHandler       func(message UserAuthMessage, wsSender WebsocketSender)
-	userJoinToRoomHandler func(message UserJoinToRoomMessage, wsSender WebsocketSender)
-	userLeaveRoomMessage  func(message UserLeaveRoomMessage, wsSender WebsocketSender)
-	userSendRoomMessage   func(message UserSendRoomMessage, wsSender WebsocketSender)
+	connections                map[*websocket.Conn]bool
+	nameSpace                  map[string][]*websocket.Conn
+	userConnectHandler         func(message UserConnectMessage, wsSender WebsocketSender)
+	userAuthHandler            func(message UserAuthMessage, wsSender WebsocketSender)
+	userJoinToRoomHandler      func(message UserJoinToRoomMessage, wsSender WebsocketSender)
+	userLeaveRoomHandler       func(message UserLeaveRoomMessage, wsSender WebsocketSender)
+	userSendRoomMessageHandler func(message UserSendRoomMessage, wsSender WebsocketSender)
 }
 
 func NewWebSocketServer() *WebSocketServer {
-	return &WebSocketServer{connections: make(map[*websocket.Conn]bool)}
+	connections := make(map[*websocket.Conn]bool)
+	nameSpace := make(map[string][]*websocket.Conn)
+	return &WebSocketServer{connections: connections, nameSpace: nameSpace}
 }
 
 func (wsServer *WebSocketServer) Listen(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +52,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 	err := json.Unmarshal(messageData, &userConnectMessage)
 	if err == nil && userConnectMessage.Name == "user_connect" {
 		if wsServer.userConnectHandler != nil {
-			sender := NewWsSender(conn)
+			sender := NewWsSender(conn, &wsServer.nameSpace)
 			wsServer.userConnectHandler(userConnectMessage, sender)
 		}
 	}
@@ -57,7 +61,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 	err = json.Unmarshal(messageData, &userAuthMessage)
 	if err == nil && userAuthMessage.Name == "user_auth" {
 		if wsServer.userAuthHandler != nil {
-			sender := NewWsSender(conn)
+			sender := NewWsSender(conn, &wsServer.nameSpace)
 			wsServer.userAuthHandler(userAuthMessage, sender)
 		}
 	}
@@ -66,7 +70,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 	err = json.Unmarshal(messageData, &userJoinToRoomMessage)
 	if err == nil && userJoinToRoomMessage.Name == "user_join_to_room" {
 		if wsServer.userJoinToRoomHandler != nil {
-			sender := NewWsSender(conn)
+			sender := NewWsSender(conn, &wsServer.nameSpace)
 			wsServer.userJoinToRoomHandler(userJoinToRoomMessage, sender)
 		}
 	}
@@ -74,18 +78,18 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 	var userLeaveRoomMessage UserLeaveRoomMessage
 	err = json.Unmarshal(messageData, &userLeaveRoomMessage)
 	if err == nil && userLeaveRoomMessage.Name == "user_leave_room" {
-		if wsServer.userLeaveRoomMessage != nil {
-			sender := NewWsSender(conn)
-			wsServer.userLeaveRoomMessage(userLeaveRoomMessage, sender)
+		if wsServer.userLeaveRoomHandler != nil {
+			sender := NewWsSender(conn, &wsServer.nameSpace)
+			wsServer.userLeaveRoomHandler(userLeaveRoomMessage, sender)
 		}
 	}
 
 	var userSendRoomMessage UserSendRoomMessage
 	err = json.Unmarshal(messageData, &userSendRoomMessage)
-	if err == nil && userSendRoomMessage.Name == "user_send_room_message" {
-		if wsServer.userSendRoomMessage != nil {
-			sender := NewWsSender(conn)
-			wsServer.userSendRoomMessage(userSendRoomMessage, sender)
+	if err == nil && userSendRoomMessage.Name == "room_message" {
+		if wsServer.userSendRoomMessageHandler != nil {
+			sender := NewWsSender(conn, &wsServer.nameSpace)
+			wsServer.userSendRoomMessageHandler(userSendRoomMessage, sender)
 		}
 	}
 
@@ -93,7 +97,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 		log.Println("Error unmarshalling message", err)
 	}
 
-	//fmt.Println("Received message", message)
+	fmt.Println("NameSpace", wsServer.nameSpace)
 }
 
 func (wsServer *WebSocketServer) SubscribeOnUserConnect(handler func(message UserConnectMessage, ws WebsocketSender)) {
@@ -115,14 +119,14 @@ func (wsServer *WebSocketServer) SubscribeOnUserJoinToRoom(handler func(message 
 }
 
 func (wsServer *WebSocketServer) SubscribeOnUserLeaveRoom(handler func(message UserLeaveRoomMessage, ws WebsocketSender)) {
-	if wsServer.userLeaveRoomMessage == nil {
-		wsServer.userLeaveRoomMessage = handler
+	if wsServer.userLeaveRoomHandler == nil {
+		wsServer.userLeaveRoomHandler = handler
 	}
 }
 
 func (wsServer *WebSocketServer) SubscribeOnUserSendRoomMessage(handler func(message UserSendRoomMessage, ws WebsocketSender)) {
-	if wsServer.userSendRoomMessage == nil {
-		wsServer.userSendRoomMessage = handler
+	if wsServer.userSendRoomMessageHandler == nil {
+		wsServer.userSendRoomMessageHandler = handler
 	}
 }
 
