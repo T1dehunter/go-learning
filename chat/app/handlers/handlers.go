@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"chat/app/components/auth"
+	"chat/app/components/message"
 	"chat/app/components/room"
 	"chat/app/components/user"
 	"chat/app/weboscket"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -67,6 +69,34 @@ func HandleUserAuth(message weboscket.UserAuthMessage, ws weboscket.WebsocketSen
 
 }
 
+func HandleUserCreateDirectRoom(message weboscket.UserCreateDirectRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
+	fmt.Printf("Handler HandleUserCreateDirectRoom received message -> %+v\n", message)
+
+	roomCreator := userService.FindUserById(message.Payload.CreatorID)
+	if roomCreator == nil {
+		log.Println("Error creating direct room: creator not found")
+		return
+	}
+
+	roomInvitee := userService.FindUserById(message.Payload.InviteeID)
+	if roomInvitee == nil {
+		log.Println("Error creating direct room: invitee not found")
+		return
+
+	}
+
+	room := roomService.CreateDirectRoom("Direct room")
+	room.JoinUser(roomCreator.Id)
+	room.JoinUser(roomInvitee.Id)
+
+	roomService.SaveRoom(*room)
+
+	ws.SendMessageToUser(roomCreator.Id, "Direct room created")
+
+	log.Println("Direct room created")
+
+}
+
 func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
 	fmt.Printf("Handler HandleUserJoinToRoom received message -> %+v\n", message)
 
@@ -93,7 +123,10 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 
 	time.Sleep(2 * time.Second)
 
-	ws.SendMessageToUser(user.Id, "You joined to room")
+	userName := fmt.Sprintf("Dear user %s", user.Name)
+	userMsg := fmt.Sprintf("%s you are joined to room %s", userName, room.Name)
+
+	ws.SendMessageToUser(user.Id, userMsg)
 
 }
 
@@ -121,6 +154,52 @@ func HandleUserLeaveRoom(message weboscket.UserLeaveRoomMessage, ws weboscket.We
 	time.Sleep(2 * time.Second)
 
 	ws.SendMessageToUser(user.Id, "You left room")
+}
+
+func HandleUserSendDirectMessage(message weboscket.UserSendDirectMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService, messageService *message.MessageService) {
+	fmt.Printf("Handler HandleUserSendDirectMessage received message -> %+v\n", message)
+
+	user := userService.FindUserById(message.Payload.UserID)
+
+	if user == nil {
+		log.Println("Error sending direct message: user not found")
+		return
+	}
+
+	receiver := userService.FindUserById(message.Payload.ReceiverID)
+
+	if receiver == nil {
+		log.Println("Error sending direct message: receiver not found")
+		return
+	}
+
+	room := roomService.FindRoomById(message.Payload.RoomID)
+	if room == nil {
+		log.Println("Error sending direct message: room not found")
+		return
+	}
+
+	if !room.IsHasUser(user.Id) {
+		log.Println("Error sending direct message: user is not in room")
+		return
+	}
+
+	if !room.IsHasUser(receiver.Id) {
+		log.Println("Error sending direct message: receiver is not in room")
+		return
+	}
+
+	newMessage := messageService.CreateMessage(message.Payload.Message, user.Id, receiver.Id, room.Id)
+
+	messageService.SaveMessage(newMessage)
+
+	log.Println("User sent direct message")
+
+	time.Sleep(2 * time.Second)
+
+	jsonMessage, _ := json.Marshal(newMessage)
+
+	ws.SendMessageToUser(receiver.Id, string(jsonMessage))
 }
 
 func HandleUserSendRoomMessage(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {

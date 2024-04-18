@@ -2,6 +2,7 @@ package app
 
 import (
 	"chat/app/components/auth"
+	"chat/app/components/message"
 	"chat/app/components/room"
 	"chat/app/components/user"
 	"chat/app/handlers"
@@ -17,18 +18,20 @@ import (
 //import "chat/app/handlers"
 
 type App struct {
-	userService *user.UserService
-	authService *auth.AuthService
-	roomService *room.RoomService
-	wsServer    *weboscket.WebSocketServer
+	userService    *user.UserService
+	authService    *auth.AuthService
+	roomService    *room.RoomService
+	messageService *message.MessageService
+	wsServer       *weboscket.WebSocketServer
 }
 
 func NewApp() *App {
 	return &App{
-		userService: user.NewUserService(),
-		authService: auth.NewAuthService(),
-		roomService: room.NewRoomService(),
-		wsServer:    weboscket.NewWebSocketServer(),
+		userService:    user.NewUserService(),
+		authService:    auth.NewAuthService(),
+		roomService:    room.NewRoomService(),
+		messageService: message.NewMessageService(),
+		wsServer:       weboscket.NewWebSocketServer(),
 	}
 }
 
@@ -43,6 +46,10 @@ func (app *App) Start() {
 		handlers.HandleUserAuth(message, ws, app.userService, app.authService, app.roomService)
 	})
 
+	app.wsServer.SubscribeOnUserCreateDirectRoom(func(message weboscket.UserCreateDirectRoomMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserCreateDirectRoom(message, ws, app.userService, app.roomService)
+	})
+
 	app.wsServer.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender) {
 		handlers.HandleUserJoinToRoom(message, ws, app.userService, app.roomService)
 	})
@@ -51,6 +58,11 @@ func (app *App) Start() {
 		handlers.HandleUserLeaveRoom(message, ws, app.userService, app.roomService)
 	})
 
+	app.wsServer.SubscribeOnUserSendDirectMessage(func(message weboscket.UserSendDirectMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserSendDirectMessage(message, ws, app.userService, app.roomService, app.messageService)
+	})
+
+	// test handler
 	app.wsServer.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender) {
 		handlers.HandleUserSendRoomMessage(message, ws, app.userService, app.roomService)
 	})

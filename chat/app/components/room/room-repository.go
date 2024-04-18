@@ -10,7 +10,7 @@ func NewRoomRepository() *RoomRepository {
 func (roomRepository *RoomRepository) FindRoomById(id int) *Room {
 	rooms := make(map[int]*Room)
 
-	rooms[1] = NewRoom(1, "Room 1", []int{1, 2, 3})
+	rooms[1] = NewRoom(1, "Room 1", Group, []int{1, 2, 3})
 
 	room, ok := rooms[id]
 	if !ok {

@@ -9,13 +9,15 @@ import (
 )
 
 type WebSocketServer struct {
-	connections                map[*websocket.Conn]bool
-	nameSpace                  map[string][]*websocket.Conn
-	userConnectHandler         func(message UserConnectMessage, wsSender WebsocketSender)
-	userAuthHandler            func(message UserAuthMessage, wsSender WebsocketSender)
-	userJoinToRoomHandler      func(message UserJoinToRoomMessage, wsSender WebsocketSender)
-	userLeaveRoomHandler       func(message UserLeaveRoomMessage, wsSender WebsocketSender)
-	userSendRoomMessageHandler func(message UserSendRoomMessage, wsSender WebsocketSender)
+	connections                  map[*websocket.Conn]bool
+	nameSpace                    map[string][]*websocket.Conn
+	userConnectHandler           func(message UserConnectMessage, wsSender WebsocketSender)
+	userAuthHandler              func(message UserAuthMessage, wsSender WebsocketSender)
+	userCreateDirectRoomHandler  func(message UserCreateDirectRoomMessage, wsSender WebsocketSender)
+	userJoinToRoomHandler        func(message UserJoinToRoomMessage, wsSender WebsocketSender)
+	userLeaveRoomHandler         func(message UserLeaveRoomMessage, wsSender WebsocketSender)
+	userSendDirectMessageHandler func(message UserSendDirectMessage, wsSender WebsocketSender)
+	userSendRoomMessageHandler   func(message UserSendRoomMessage, wsSender WebsocketSender)
 }
 
 func NewWebSocketServer() *WebSocketServer {
@@ -28,6 +30,9 @@ func (wsServer *WebSocketServer) Listen(w http.ResponseWriter, r *http.Request) 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -66,6 +71,15 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 		}
 	}
 
+	var userCreateDirectRoomMessage UserCreateDirectRoomMessage
+	err = json.Unmarshal(messageData, &userCreateDirectRoomMessage)
+	if err == nil && userCreateDirectRoomMessage.Name == "user_create_direct_room" {
+		if wsServer.userCreateDirectRoomHandler != nil {
+			sender := NewWsSender(conn, &wsServer.nameSpace)
+			wsServer.userCreateDirectRoomHandler(userCreateDirectRoomMessage, sender)
+		}
+	}
+
 	var userJoinToRoomMessage UserJoinToRoomMessage
 	err = json.Unmarshal(messageData, &userJoinToRoomMessage)
 	if err == nil && userJoinToRoomMessage.Name == "user_join_to_room" {
@@ -81,6 +95,15 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 		if wsServer.userLeaveRoomHandler != nil {
 			sender := NewWsSender(conn, &wsServer.nameSpace)
 			wsServer.userLeaveRoomHandler(userLeaveRoomMessage, sender)
+		}
+	}
+
+	var userSendDirectMessage UserSendDirectMessage
+	err = json.Unmarshal(messageData, &userSendDirectMessage)
+	if err == nil && userSendDirectMessage.Name == "direct_message" {
+		if wsServer.userSendDirectMessageHandler != nil {
+			sender := NewWsSender(conn, &wsServer.nameSpace)
+			wsServer.userSendDirectMessageHandler(userSendDirectMessage, sender)
 		}
 	}
 
@@ -112,6 +135,12 @@ func (wsServer *WebSocketServer) SubscribeOnUserAuth(handler func(message UserAu
 	}
 }
 
+func (wsServer *WebSocketServer) SubscribeOnUserCreateDirectRoom(handler func(message UserCreateDirectRoomMessage, ws WebsocketSender)) {
+	if wsServer.userCreateDirectRoomHandler == nil {
+		wsServer.userCreateDirectRoomHandler = handler
+	}
+}
+
 func (wsServer *WebSocketServer) SubscribeOnUserJoinToRoom(handler func(message UserJoinToRoomMessage, ws WebsocketSender)) {
 	if wsServer.userJoinToRoomHandler == nil {
 		wsServer.userJoinToRoomHandler = handler
@@ -121,6 +150,12 @@ func (wsServer *WebSocketServer) SubscribeOnUserJoinToRoom(handler func(message 
 func (wsServer *WebSocketServer) SubscribeOnUserLeaveRoom(handler func(message UserLeaveRoomMessage, ws WebsocketSender)) {
 	if wsServer.userLeaveRoomHandler == nil {
 		wsServer.userLeaveRoomHandler = handler
+	}
+}
+
+func (wsServer *WebSocketServer) SubscribeOnUserSendDirectMessage(handler func(message UserSendDirectMessage, ws WebsocketSender)) {
+	if wsServer.userSendDirectMessageHandler == nil {
+		wsServer.userSendDirectMessageHandler = handler
 	}
 }
 

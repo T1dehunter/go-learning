@@ -20,7 +20,7 @@ func (roomService *RoomService) JoinUser(userId int, roomId int) bool {
 		fmt.Println("Error joining user to room: room not found")
 		return false
 	}
-	room.joinUser(userId)
+	room.JoinUser(userId)
 	return true
 }
 
@@ -31,5 +31,13 @@ func (roomService *RoomService) LeaveUser(userId int, roomId int) bool {
 		return false
 	}
 	room.leaveUser(userId)
+	return true
+}
+
+func (roomService *RoomService) CreateDirectRoom(name string) *Room {
+	return NewRoom(1, name, Direct, []int{})
+}
+
+func (roomService *RoomService) SaveRoom(room Room) bool {
 	return true
 }

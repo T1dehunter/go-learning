@@ -1,21 +1,12 @@
-#GET http://localhost:80/api/item?id=99
-#Accept: application/json
+### authenticate user
+WEBSOCKET ws://localhost:3000/chat
+Content-Type: application/json
 
-###
-### Simple WebSocket Request
-// It is possible to send messages to server right from the Services tool window
-#WEBSOCKET ws://localhost:3000/chat
+{
+  "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
+}
 
-
-### User auth request
-#WEBSOCKET ws://localhost:3000/chat
-#Content-Type: application/json
-#
-#{
-#  "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
-#}
-
-### connect users
+### connect user
 WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
@@ -42,6 +33,37 @@ Content-Type: application-json // Used for content highlighting only
 {
  "name": "room_message", "payload": {"userID": 1, "roomID": 1, "message": "Yo dudes!"}
 }
+
+
+### create direct room
+WEBSOCKET ws://localhost:3000/chat
+Content-Type: application-json // Used for content highlighting only
+
+{
+ "name": "user_create_direct_room", "payload": {"creatorID": 1, "inviteeID": 2, "message": "Hello, Alex!"}
+}
+
+### send direct message
+WEBSOCKET ws://localhost:3000/chat
+Content-Type: application-json // Used for content highlighting only
+
+{
+ "name": "direct_message", "payload": {"userID": 1, "receiverID": 2, "roomID": 1, "message": "Hello dude!"}
+}
+###
+#{
+# "name": "user_create_direct_room", "payload": {"creatorID": 1, "inviteeID": 2, "message": "Hello, Alex!"}
+#}
+#=== wait-for-server
+#{
+# "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+#}
+###
+#=== wait-for-server
+#{
+# "name": "user_join_to_room", "payload": {"userID": 2, "roomID": 1, "roomName": "Room 1"}
+#}
+#=== wait-for-server
 
 
 

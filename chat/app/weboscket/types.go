@@ -18,6 +18,14 @@ type UserAuthMessage struct {
 	} `json:"payload"`
 }
 
+type UserCreateDirectRoomMessage struct {
+	Name    string `json:"name"`
+	Payload struct {
+		CreatorID int `json:"creatorID"`
+		InviteeID int `json:"inviteeID"`
+	} `json:"payload"`
+}
+
 type UserJoinToRoomMessage struct {
 	Name    string `json:"name"`
 	Payload struct {
@@ -31,6 +39,16 @@ type UserLeaveRoomMessage struct {
 	Payload struct {
 		UserID int `json:"userID"`
 		RoomID int `json:"roomID"`
+	} `json:"payload"`
+}
+
+type UserSendDirectMessage struct {
+	Name    string `json:"name"`
+	Payload struct {
+		UserID     int    `json:"userID"`
+		ReceiverID int    `json:"receiverID"`
+		RoomID     int    `json:"roomID"`
+		Message    string `json:"message"`
 	} `json:"payload"`
 }
 
