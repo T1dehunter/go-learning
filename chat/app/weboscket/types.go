@@ -62,6 +62,7 @@ type UserSendRoomMessage struct {
 }
 
 type WebsocketSender interface {
+	RegisterConnection(userID int)
 	SendMessageToUser(connectionID int, message string)
 	SendMessageToRoom(connectionID int, message string)
 	AddUserToNamespace(namespace string)

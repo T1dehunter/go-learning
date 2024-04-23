@@ -16,19 +16,19 @@ func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.Websoc
 	fmt.Printf("Handler HandleUserConnect received message -> %+v\n", message)
 
 	user := userService.FindUserById(message.Payload.UserID)
-
 	if user == nil {
 		log.Println("Error connecting user: user not found")
 		return
 	}
 
 	isAuthenticated := authService.AuthenticateUser(user, message.Payload.AccessToken)
-
 	if !isAuthenticated {
 		log.Println("Error connecting user: user is not authenticated")
 		ws.SendMessageToUser(user.Id, "You are not authenticated")
 		return
 	}
+
+	ws.RegisterConnection(user.Id)
 
 	ws.AddUserToNamespace("connected_users")
 
@@ -160,14 +160,12 @@ func HandleUserSendDirectMessage(message weboscket.UserSendDirectMessage, ws web
 	fmt.Printf("Handler HandleUserSendDirectMessage received message -> %+v\n", message)
 
 	user := userService.FindUserById(message.Payload.UserID)
-
 	if user == nil {
 		log.Println("Error sending direct message: user not found")
 		return
 	}
 
 	receiver := userService.FindUserById(message.Payload.ReceiverID)
-
 	if receiver == nil {
 		log.Println("Error sending direct message: receiver not found")
 		return
