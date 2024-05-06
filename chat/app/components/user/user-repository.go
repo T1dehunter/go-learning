@@ -1,10 +1,13 @@
 package user
 
+import "go.mongodb.org/mongo-driver/mongo"
+
 type UserRepository struct {
+	client *mongo.Client
 }
 
-func NewUserRepository() *UserRepository {
-	return &UserRepository{}
+func NewUserRepository(client *mongo.Client) *UserRepository {
+	return &UserRepository{client: client}
 }
 
 func (userRepository *UserRepository) FindUserById(id int) *User {

@@ -1,10 +1,13 @@
 package room
 
+import "go.mongodb.org/mongo-driver/mongo"
+
 type RoomRepository struct {
+	client *mongo.Client
 }
 
-func NewRoomRepository() *RoomRepository {
-	return &RoomRepository{}
+func NewRoomRepository(client *mongo.Client) *RoomRepository {
+	return &RoomRepository{client: client}
 }
 
 func (roomRepository *RoomRepository) FindRoomById(id int) *Room {

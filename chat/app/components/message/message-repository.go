@@ -1,10 +1,13 @@
 package message
 
+import "go.mongodb.org/mongo-driver/mongo"
+
 type MessageRepository struct {
+	client *mongo.Client
 }
 
-func NewMessageRepository() *MessageRepository {
-	return &MessageRepository{}
+func NewMessageRepository(client *mongo.Client) *MessageRepository {
+	return &MessageRepository{client: client}
 }
 
 func (messageRepository *MessageRepository) FindMessagesByRoomID(roomID int) []*Message {

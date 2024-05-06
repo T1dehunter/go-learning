@@ -5,6 +5,7 @@ import (
 	"chat/app/components/message"
 	"chat/app/components/room"
 	"chat/app/components/user"
+	"chat/app/database"
 	"chat/app/handlers"
 	"chat/app/weboscket"
 	"log"
@@ -26,16 +27,25 @@ type App struct {
 }
 
 func NewApp() *App {
+	client := database.Connect()
+
+	database.TestFind()
+
+	userRepository := user.NewUserRepository(client)
+	roomRepository := room.NewRoomRepository(client)
+	messageRepository := message.NewMessageRepository(client)
+
 	return &App{
-		userService:    user.NewUserService(),
-		authService:    auth.NewAuthService(),
-		roomService:    room.NewRoomService(),
-		messageService: message.NewMessageService(),
+		authService:    auth.NewAuthService(userRepository),
+		userService:    user.NewUserService(userRepository),
+		roomService:    room.NewRoomService(roomRepository),
+		messageService: message.NewMessageService(messageRepository),
 		wsServer:       weboscket.NewWebSocketServer(),
 	}
 }
 
 func (app *App) Start() {
+
 	http.HandleFunc("/chat", app.wsServer.Listen)
 
 	app.wsServer.SubscribeOnUserConnect(func(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender) {

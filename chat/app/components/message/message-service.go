@@ -1,11 +1,11 @@
 package message
 
 type MessageService struct {
-	roomRepository *MessageRepository
+	messageRepository *MessageRepository
 }
 
-func NewMessageService() *MessageService {
-	return &MessageService{roomRepository: NewMessageRepository()}
+func NewMessageService(messageRepository *MessageRepository) *MessageService {
+	return &MessageService{messageRepository: messageRepository}
 }
 
 func (messageService *MessageService) CreateMessage(text string, creatorID int, receiverID int, roomID int) *Message {
@@ -13,9 +13,9 @@ func (messageService *MessageService) CreateMessage(text string, creatorID int, 
 }
 
 func (messageService *MessageService) FindRoomMessages(roomID int) []*Message {
-	return messageService.roomRepository.FindMessagesByRoomID(roomID)
+	return messageService.messageRepository.FindMessagesByRoomID(roomID)
 }
 
 func (messageService *MessageService) SaveMessage(message *Message) {
-	messageService.roomRepository.SaveMessage(message)
+	messageService.messageRepository.SaveMessage(message)
 }

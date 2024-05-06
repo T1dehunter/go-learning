@@ -6,8 +6,8 @@ type RoomService struct {
 	roomRepository *RoomRepository
 }
 
-func NewRoomService() *RoomService {
-	return &RoomService{}
+func NewRoomService(roomRepository *RoomRepository) *RoomService {
+	return &RoomService{roomRepository: roomRepository}
 }
 
 func (romService *RoomService) FindRoomById(id int) *Room {

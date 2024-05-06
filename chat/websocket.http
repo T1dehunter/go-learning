@@ -48,7 +48,7 @@ WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
 {
- "name": "direct_message", "payload": {"userID": 1, "receiverID": 2, "roomID": 1, "message": "Hello dude!"}
+ "name": "direct_message", "payload": {"userID": 1, "receiverID": 3, "roomID": 1, "message": "Dude hello from user 1 !"}
 }
 ###
 #{
