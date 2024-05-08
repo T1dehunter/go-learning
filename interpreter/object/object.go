@@ -1,6 +1,11 @@
 package object
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+	"go-learning/interpreter/parser/ast"
+	"strings"
+)
 
 type ObjectType string
 
@@ -10,6 +15,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
+	FUNCTION_OBJ     = "FUNCTION"
 )
 
 type Object interface {
@@ -69,3 +75,29 @@ type Error struct {
 
 func (error *Error) Type() ObjectType { return ERROR_OBJ }
 func (error *Error) Inspect() string  { return "ERROR: " + error.Message }
+
+// Function data
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (fun *Function) Type() ObjectType { return FUNCTION_OBJ }
+func (fun *Function) Inspect() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fun.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(fun.Body.String())
+	out.WriteString("\n}")
+
+	return out.String()
+}
