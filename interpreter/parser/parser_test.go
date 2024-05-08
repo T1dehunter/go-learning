@@ -15,6 +15,7 @@ func TestAll(test *testing.T) {
 	TestReturnStatements(test)
 	TestIdentifierExpression(test)
 	TestIntegerLiteralExpression(test)
+	TestStringLiteralExpression(test)
 	TestParsingPrefixExpressions(test)
 	TestParsingInfixExpressions(test)
 	TestOperatorPrecedenceParsing(test)
@@ -148,6 +149,25 @@ func TestIntegerLiteralExpression(test *testing.T) {
 	}
 	if literal.TokenLiteral() != "5" {
 		test.Errorf("literal.TokenLiteral not %s. got=%s", "5", literal.TokenLiteral())
+	}
+}
+
+func TestStringLiteralExpression(t *testing.T) {
+	input := `"hello world";`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	literal, ok := stmt.Expression.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("exp not *ast.StringLiteral. got=%T", stmt.Expression)
+	}
+
+	if literal.Value != "hello world" {
+		t.Errorf("literal.Value not %q. got=%q", "hello world", literal.Value)
 	}
 }
 

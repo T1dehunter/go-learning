@@ -140,6 +140,7 @@ func (expression *ExpressionStatement) TokenLiteral() string {
 	return expression.Token.Literal
 }
 
+// IntegerLiteral data
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64
@@ -148,6 +149,16 @@ type IntegerLiteral struct {
 func (intLiteral *IntegerLiteral) expressionNode()      {}
 func (intLiteral *IntegerLiteral) TokenLiteral() string { return intLiteral.Token.Literal }
 func (intLiteral *IntegerLiteral) String() string       { return intLiteral.Token.Literal }
+
+// StringLiteral data
+type StringLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (strLiteral *StringLiteral) expressionNode()      {}
+func (strLiteral *StringLiteral) TokenLiteral() string { return strLiteral.Token.Literal }
+func (strLiteral *StringLiteral) String() string       { return strLiteral.Token.Literal }
 
 // PrefixExpression data
 type PrefixExpression struct {

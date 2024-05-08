@@ -85,6 +85,9 @@ func (lexer *Lexer) NextToken() token.Token {
 		currentToken = createToken(token.LBRACE, lexer.currentChar)
 	case '}':
 		currentToken = createToken(token.RBRACE, lexer.currentChar)
+	case '"':
+		currentToken.Type = token.STRING
+		currentToken.Literal = lexer.readString()
 	case 0:
 		currentToken.Literal = ""
 		currentToken.Type = token.EOF
@@ -127,6 +130,18 @@ func (lexer *Lexer) readNumber() string {
 	}
 	numberEndChar := lexer.position
 	return lexer.input[numberStartChar:numberEndChar]
+}
+
+func (lexer *Lexer) readString() string {
+	stringStart := lexer.position + 1
+	for {
+		lexer.readNextChar()
+		if lexer.currentChar == '"' || lexer.currentChar == 0 {
+			break
+		}
+	}
+	stringEnd := lexer.position
+	return lexer.input[stringStart:stringEnd]
 }
 
 func isLetter(char byte) bool {

@@ -12,6 +12,8 @@ import (
 
 func TestAll(test *testing.T) {
 	TestEvalIntegerExpression(test)
+	TestStringLiteral(test)
+	TestStringConcatenation(test)
 	TestEvalBooleanExpression(test)
 	TestBangOperator(test)
 	TestIfElseExpressions(test)
@@ -47,6 +49,34 @@ func TestEvalIntegerExpression(test *testing.T) {
 	for _, testData := range tests {
 		evaluated := testEval(testData.input)
 		testIntegerObject(test, evaluated, testData.expected)
+	}
+}
+
+func TestStringLiteral(test *testing.T) {
+	input := `"Hello World!"`
+
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	if !ok {
+		test.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+
+	if str.Value != "Hello World!" {
+		test.Errorf("String has wrong value. got=%q", str.Value)
+	}
+}
+
+func TestStringConcatenation(test *testing.T) {
+	input := `"Hello" + " " + "World!"`
+
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	if !ok {
+		test.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+
+	if str.Value != "Hello World!" {
+		test.Errorf("String has wrong value. got=%q", str.Value)
 	}
 }
 
@@ -202,6 +232,10 @@ func TestErrorHandling(t *testing.T) {
 		{
 			"5 + true; 5;",
 			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			`"Hello" - "World"`,
+			"unknown operator: STRING - STRING",
 		},
 		{
 			"-true",

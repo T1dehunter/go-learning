@@ -9,6 +9,7 @@ func TestLexer(testFramework *testing.T) {
 	TestParseChars(testFramework)
 	TestParseCodeBlock(testFramework)
 	TestParseIfStatement(testFramework)
+	TestNextToken(testFramework)
 }
 
 func TestParseChars(testFramework *testing.T) {
@@ -132,6 +133,71 @@ func TestParseIfStatement(testFramework *testing.T) {
 		{token.LBRACE, "{"},
 		{token.RETURN, "return"},
 		{token.FALSE, "false"},
+	}
+
+	lexer := New(input)
+
+	runTests(lexer, tests, testFramework)
+}
+
+func TestNextToken(testFramework *testing.T) {
+	input := `
+		let five = 5;
+		let ten = 10;
+		let add = fn(x, y) {
+	       x + y;
+	    };
+		let result = add(five, ten);
+		"foobar"
+		"foo bar"
+	`
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.LET, "let"},
+		{token.IDENT, "five"},
+		{token.ASSIGN, "="},
+		{token.INT, "5"},
+		{token.SEMICOLON, ";"},
+
+		{token.LET, "let"},
+		{token.IDENT, "ten"},
+		{token.ASSIGN, "="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
+
+		{token.LET, "let"},
+		{token.IDENT, "add"},
+		{token.ASSIGN, "="},
+		{token.FUNCTION, "fn"},
+		{token.LPAREN, "("},
+		{token.IDENT, "x"},
+		{token.COMMA, ","},
+		{token.IDENT, "y"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.IDENT, "x"},
+		{token.PLUS, "+"},
+		{token.IDENT, "y"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
+		{token.SEMICOLON, ";"},
+
+		{token.LET, "let"},
+		{token.IDENT, "result"},
+		{token.ASSIGN, "="},
+		{token.IDENT, "add"},
+		{token.LPAREN, "("},
+		{token.IDENT, "five"},
+		{token.COMMA, ","},
+		{token.IDENT, "ten"},
+		{token.RPAREN, ")"},
+		{token.SEMICOLON, ";"},
+		{token.STRING, "foobar"},
+		{token.STRING, "foo bar"},
+
+		{token.EOF, ""},
 	}
 
 	lexer := New(input)
