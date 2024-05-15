@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"go-learning/interpreter/parser/ast"
+	"reflect"
 	"testing"
 )
 
@@ -25,6 +26,7 @@ func TestAll(test *testing.T) {
 	TestFunctionLiteralParsing(test)
 	TestFunctionParameterParsing(test)
 	TestCallExpressionParsing(test)
+	TestParsingArrayLiterals(test)
 }
 
 func TestLetStatements(test *testing.T) {
@@ -373,6 +375,14 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		//	"add(a + b + c * d / f + g)",
 		//	"add((((a + b) + ((c * d) / f)) + g))",
 		//},
+		//{
+		//	"a * [1, 2, 3, 4][b * c] * d",
+		//	"((a * ([1, 2, 3, 4][(b * c)])) * d)",
+		//},
+		{
+			"add(a * b[2], b[1], 2 * [1, 2][1])",
+			"add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+		},
 	}
 
 	for _, tt := range tests {
@@ -812,4 +822,52 @@ func TestCallExpressionParsing(testing *testing.T) {
 	testLiteralExpression(testing, exp.Arguments[0], 1)
 	testInfixExpression(testing, exp.Arguments[1], 2, "*", 3)
 	testInfixExpression(testing, exp.Arguments[2], 4, "+", 5)
+}
+
+func TestParsingArrayLiterals(testing *testing.T) {
+	input := "[1, 2 * 2, 3 + 3]"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(testing, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	array, ok := stmt.Expression.(*ast.ArrayLiteral)
+	if !ok {
+		testing.Fatalf("exp not ast.ArrayLiteral. got=%T", stmt.Expression)
+	}
+
+	if len(array.Elements) != 3 {
+		testing.Fatalf("len(array.Elements) not 3. got=%d", len(array.Elements))
+	}
+
+	fmt.Println(reflect.TypeOf(array.Elements[0].TokenLiteral()))
+
+	//testIntegerLiteral(testing, array.Elements[0], 1)
+	testInfixExpression(testing, array.Elements[1], 2, "*", 2)
+	testInfixExpression(testing, array.Elements[2], 3, "+", 3)
+}
+
+func TestParsingIndexExpressions(testing *testing.T) {
+	input := "myArray[1 + 1]"
+
+	lexer := lexer.New(input)
+	parser := New(lexer)
+	program := parser.ParseProgram()
+	checkParserErrors(testing, parser)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+	if !ok {
+		testing.Fatalf("exp not *ast.IndexExpression. got=%T", stmt.Expression)
+	}
+
+	if !testIdentifier(testing, indexExp.Left, "myArray") {
+		return
+	}
+
+	if !testInfixExpression(testing, indexExp.Index, 1, "+", 1) {
+		return
+	}
 }

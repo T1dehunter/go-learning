@@ -85,6 +85,10 @@ func (lexer *Lexer) NextToken() token.Token {
 		currentToken = createToken(token.LBRACE, lexer.currentChar)
 	case '}':
 		currentToken = createToken(token.RBRACE, lexer.currentChar)
+	case '[':
+		currentToken = createToken(token.LBRACKET, lexer.currentChar)
+	case ']':
+		currentToken = createToken(token.RBRACKET, lexer.currentChar)
 	case '"':
 		currentToken.Type = token.STRING
 		currentToken.Literal = lexer.readString()
