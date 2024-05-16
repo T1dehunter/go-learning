@@ -75,6 +75,8 @@ func (lexer *Lexer) NextToken() token.Token {
 		currentToken = createToken(token.GT, lexer.currentChar)
 	case ';':
 		currentToken = createToken(token.SEMICOLON, lexer.currentChar)
+	case ':':
+		currentToken = createToken(token.COLON, lexer.currentChar)
 	case '(':
 		currentToken = createToken(token.LPAREN, lexer.currentChar)
 	case ')':

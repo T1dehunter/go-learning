@@ -51,6 +51,7 @@ func New(lexer *lexer.Lexer) *Parser {
 	parser.registerPrefix(token.FALSE, parser.parseBoolean)
 	parser.registerPrefix(token.LPAREN, parser.parseGroupedExpression)
 	parser.registerPrefix(token.LBRACKET, parser.parseArrayLiteral)
+	parser.registerPrefix(token.LBRACE, parser.parseHashLiteral)
 	parser.registerPrefix(token.IF, parser.parseIfExpression)
 	//parser.registerPrefix(token.ELSE, parser.parseIfExpression)
 	parser.registerPrefix(token.FUNCTION, parser.parseFunctionLiteral)
@@ -144,6 +145,36 @@ func (parser *Parser) parseArrayLiteral() ast.Expression {
 	array.Elements = parser.parseExpressionList(token.RBRACKET)
 
 	return array
+}
+
+func (parser *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Token: parser.curToken}
+	hash.Pairs = make(map[ast.Expression]ast.Expression)
+
+	for !parser.nextTokenIs(token.RBRACE) {
+		parser.parseNextToken()
+		key := parser.parseExpression(LOWEST)
+
+		if !parser.expectNext(token.COLON) {
+			return nil
+		}
+
+		parser.parseNextToken()
+
+		value := parser.parseExpression(LOWEST)
+
+		hash.Pairs[key] = value
+
+		if !parser.nextTokenIs(token.RBRACE) && !parser.expectNext(token.COMMA) {
+			return nil
+		}
+	}
+
+	if !parser.expectNext(token.RBRACE) {
+		return nil
+	}
+
+	return hash
 }
 
 func (parser *Parser) parseExpressionList(end token.TokenType) []ast.Expression {

@@ -344,6 +344,7 @@ func (arrayLiteral *ArrayLiteral) String() string {
 	return out.String()
 }
 
+// IndexExpression data
 type IndexExpression struct {
 	Token token.Token // The [ token
 	Left  Expression
@@ -360,6 +361,29 @@ func (idxExpression *IndexExpression) String() string {
 	out.WriteString("[")
 	out.WriteString(idxExpression.Index.String())
 	out.WriteString("])")
+
+	return out.String()
+}
+
+// HashLiteral data
+type HashLiteral struct {
+	Token token.Token // the '{' token
+	Pairs map[Expression]Expression
+}
+
+func (hashLiteral *HashLiteral) expressionNode()      {}
+func (hashLiteral *HashLiteral) TokenLiteral() string { return hashLiteral.Token.Literal }
+func (hashLiteral *HashLiteral) String() string {
+	var out bytes.Buffer
+
+	pairs := []string{}
+	for key, value := range hashLiteral.Pairs {
+		pairs = append(pairs, key.String()+":"+value.String())
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
 
 	return out.String()
 }
