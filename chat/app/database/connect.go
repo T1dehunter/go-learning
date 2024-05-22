@@ -1,6 +1,7 @@
 package database
 
 import (
+	"chat/app/config"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -17,7 +18,8 @@ func Connect() *mongo.Client {
 	defer cancel()
 
 	// Connect to MongoDB
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	config := config.NewConfig()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.MongoUrl))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,7 +38,7 @@ func Connect() *mongo.Client {
 func TestFind() {
 	client := Connect()
 
-	collection := client.Database("test").Collection("rooms")
+	collection := client.Database("chat").Collection("rooms")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

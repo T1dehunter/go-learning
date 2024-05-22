@@ -27,13 +27,13 @@ type App struct {
 }
 
 func NewApp() *App {
-	client := database.Connect()
+	dbClient := database.Connect()
 
 	database.TestFind()
 
-	userRepository := user.NewUserRepository(client)
-	roomRepository := room.NewRoomRepository(client)
-	messageRepository := message.NewMessageRepository(client)
+	userRepository := user.NewUserRepository(dbClient)
+	roomRepository := room.NewRoomRepository(dbClient)
+	messageRepository := message.NewMessageRepository(dbClient)
 
 	return &App{
 		authService:    auth.NewAuthService(userRepository),
