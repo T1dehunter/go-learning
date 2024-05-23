@@ -1,1 +1,3 @@
-nodemon --exec "go run" ./main.go --signal SIGTERM
+nodemon --exec "go run" ./main.go start --signal SIGTERM
+
+go run main.go seed

@@ -35,7 +35,7 @@ func (roomService *RoomService) LeaveUser(userId int, roomId int) bool {
 }
 
 func (roomService *RoomService) CreateDirectRoom(name string) *Room {
-	return NewRoom(1, name, Direct, []int{})
+	return NewRoom(1, name, "direct", []int{})
 }
 
 func (roomService *RoomService) SaveRoom(room Room) bool {

@@ -35,7 +35,7 @@ func Connect() *mongo.Client {
 	return client
 }
 
-func TestFind() {
+func SeedData() {
 	client := Connect()
 
 	collection := client.Database("chat").Collection("rooms")

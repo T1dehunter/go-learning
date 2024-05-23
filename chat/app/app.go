@@ -7,16 +7,12 @@ import (
 	"chat/app/components/user"
 	"chat/app/database"
 	"chat/app/handlers"
+	seeder "chat/app/jobs/seed-data"
 	"chat/app/weboscket"
+	"fmt"
 	"log"
 	"net/http"
 )
-
-//import "chat/app/components/auth"
-//import "chat/app/components/room"
-//import "chat/app/weboscket"
-
-//import "chat/app/handlers"
 
 type App struct {
 	userService    *user.UserService
@@ -28,9 +24,6 @@ type App struct {
 
 func NewApp() *App {
 	dbClient := database.Connect()
-
-	database.TestFind()
-
 	userRepository := user.NewUserRepository(dbClient)
 	roomRepository := room.NewRoomRepository(dbClient)
 	messageRepository := message.NewMessageRepository(dbClient)
@@ -80,4 +73,9 @@ func (app *App) Start() {
 	log.Println("Server started")
 
 	log.Fatal(http.ListenAndServe(":3000", nil))
+}
+
+func (app *App) Seed() {
+	fmt.Println("Seed data")
+	seeder.Seed()
 }

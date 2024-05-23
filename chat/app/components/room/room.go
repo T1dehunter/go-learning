@@ -10,11 +10,11 @@ const (
 type Room struct {
 	Id      int
 	Name    string
-	Type    RoomType
+	Type    string
 	UserIds []int
 }
 
-func NewRoom(id int, name string, roomType RoomType, userIds []int) *Room {
+func NewRoom(id int, name string, roomType string, userIds []int) *Room {
 	return &Room{Id: id, Name: name, Type: roomType, UserIds: userIds}
 }
 

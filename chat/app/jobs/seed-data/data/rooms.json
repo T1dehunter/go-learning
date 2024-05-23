@@ -1,0 +1,8 @@
+[
+  {
+    "id": 1,
+    "name": "Room 1",
+    "type": "direct",
+    "userIds": [1, 2]
+  }
+]

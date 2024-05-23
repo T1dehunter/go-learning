@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "creatorID": 1,
+    "receiverID": 2,
+    "roomID": 1,
+    "text": "Hello Arya!"
+  }
+]

@@ -17,5 +17,5 @@ func (messageService *MessageService) FindRoomMessages(roomID int) []*Message {
 }
 
 func (messageService *MessageService) SaveMessage(message *Message) {
-	messageService.messageRepository.SaveMessage(message)
+	messageService.messageRepository.AddMessage(nil, message)
 }

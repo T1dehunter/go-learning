@@ -1,6 +1,9 @@
 package user
 
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+	"context"
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 type UserRepository struct {
 	client *mongo.Client
@@ -27,4 +30,22 @@ func (userRepository *UserRepository) FindUserById(id int) *User {
 	}
 
 	return user
+}
+
+func (userRepository *UserRepository) AddUser(ctx context.Context, user *User) {
+	collection := userRepository.client.Database("chat").Collection("users")
+	data := map[string]interface{}{
+		"id":       user.Id,
+		"name":     user.Name,
+		"email":    user.Email,
+		"password": user.Password,
+	}
+	_, err := collection.InsertOne(ctx, data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (userRepository *UserRepository) DeleteAllUsers(ctx context.Context) {
+	userRepository.client.Database("chat").Collection("users").Drop(ctx)
 }
