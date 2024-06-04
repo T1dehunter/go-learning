@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -9,27 +10,28 @@ type UserRepository struct {
 	client *mongo.Client
 }
 
+type UserSchema struct {
+	Id       int
+	Name     string
+	Email    string
+	IsBanned bool
+	Password string
+	RoomID   int
+}
+
 func NewUserRepository(client *mongo.Client) *UserRepository {
 	return &UserRepository{client: client}
 }
 
-func (userRepository *UserRepository) FindUserById(id int) *User {
-	users := make(map[int]*User)
-
-	user1RoomID := 1
-	users[1] = NewUser(1, "Alex", "alex@mail.com", "Test1234", false, &user1RoomID)
-
-	user2RoomID := 1
-	users[2] = NewUser(2, "Bob", "bob@mail.com", "Test1234", false, &user2RoomID)
-
-	users[3] = NewUser(3, "Zed", "zed@mail.com", "Test1234", false, nil)
-
-	user, ok := users[id]
-	if !ok {
-		return nil
+func (userRepository *UserRepository) FindUserById(ctx context.Context, id int) *User {
+	var result UserSchema
+	filter := bson.D{{"id", id}}
+	collection := userRepository.client.Database("chat").Collection("users")
+	err := collection.FindOne(ctx, filter).Decode(&result)
+	if err == nil {
+		return mapSchemaToUser(&result)
 	}
-
-	return user
+	return nil
 }
 
 func (userRepository *UserRepository) AddUser(ctx context.Context, user *User) {
@@ -39,6 +41,8 @@ func (userRepository *UserRepository) AddUser(ctx context.Context, user *User) {
 		"name":     user.Name,
 		"email":    user.Email,
 		"password": user.Password,
+		"isBanned": user.IsBanned,
+		"roomID":   user.RoomID,
 	}
 	_, err := collection.InsertOne(ctx, data)
 	if err != nil {

@@ -65,6 +65,10 @@ func (app *App) Start() {
 		handlers.HandleUserSendDirectMessage(message, ws, app.userService, app.roomService, app.messageService)
 	})
 
+	app.wsServer.SubscribeOnGetRoomMessages(func(message weboscket.UserGetRoomMessages, ws weboscket.WebsocketSender) {
+		handlers.HandleGetRoomMessages(message, ws, app.userService, app.roomService, app.messageService)
+	})
+
 	// test handler
 	app.wsServer.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender) {
 		handlers.HandleUserSendRoomMessage(message, ws, app.userService, app.roomService)

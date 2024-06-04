@@ -13,13 +13,23 @@ func NewMessageRepository(client *mongo.Client) *MessageRepository {
 	return &MessageRepository{client: client}
 }
 
-func (messageRepository *MessageRepository) FindMessagesByRoomID(roomID int) []*Message {
-	messages := make([]*Message, 3)
+func (messageRepository *MessageRepository) FindMessagesByRoomID(ctx context.Context, roomID int) []*Message {
+	collection := messageRepository.client.Database("chat").Collection("messages")
+	cursor, err := collection.Find(ctx, map[string]interface{}{"roomID": roomID})
+	if err != nil {
+		panic(err)
+	}
+	defer cursor.Close(ctx)
 
-	messages[0] = NewMessage(1, "Message 1", 1, 2, 1)
-	messages[1] = NewMessage(1, "Message 2", 1, 2, 1)
-	messages[2] = NewMessage(1, "Message 3", 1, 2, 1)
-
+	messages := []*Message{}
+	for cursor.Next(ctx) {
+		var msg Message
+		err := cursor.Decode(&msg)
+		if err != nil {
+			panic(err)
+		}
+		messages = append(messages, NewMessage(msg.Id, msg.Text, msg.CreatorID, msg.ReceiverID, msg.RoomID))
+	}
 	return messages
 }
 

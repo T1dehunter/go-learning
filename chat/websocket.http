@@ -50,6 +50,23 @@ Content-Type: application-json // Used for content highlighting only
 {
  "name": "direct_message", "payload": {"userID": 1, "receiverID": 2, "roomID": 1, "message": "Arya, how are you?"}
 }
+
+### get room messages
+WEBSOCKET ws://localhost:3000/chat
+Content-Type: application-json // Used for content highlighting only
+
+{
+ "name": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
+}
+=== wait-for-server
+{
+ "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+}
+=== wait-for-server
+{
+ "name": "user_get_room_messages", "payload": {"userID": 1, "roomID": 1}
+}
+=== wait-for-server
 ###
 #{
 # "name": "user_create_direct_room", "payload": {"creatorID": 1, "inviteeID": 2, "message": "Hello, Alex!"}

@@ -19,6 +19,7 @@ type WebSocketServer struct {
 	userLeaveRoomHandler         func(message UserLeaveRoomMessage, wsSender WebsocketSender)
 	userSendDirectMessageHandler func(message UserSendDirectMessage, wsSender WebsocketSender)
 	userSendRoomMessageHandler   func(message UserSendRoomMessage, wsSender WebsocketSender)
+	UserGetRoomMessagesHandler   func(message UserGetRoomMessages, wsSender WebsocketSender)
 }
 
 func NewWebSocketServer() *WebSocketServer {
@@ -118,6 +119,15 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 		}
 	}
 
+	var userGetRoomMessages UserGetRoomMessages
+	err = json.Unmarshal(messageData, &userGetRoomMessages)
+	if err == nil && userGetRoomMessages.Name == "user_get_room_messages" {
+		if wsServer.UserGetRoomMessagesHandler != nil {
+			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
+			wsServer.UserGetRoomMessagesHandler(userGetRoomMessages, sender)
+		}
+	}
+
 	if err != nil {
 		log.Println("Error unmarshalling message", err)
 	}
@@ -164,6 +174,12 @@ func (wsServer *WebSocketServer) SubscribeOnUserSendDirectMessage(handler func(m
 func (wsServer *WebSocketServer) SubscribeOnUserSendRoomMessage(handler func(message UserSendRoomMessage, ws WebsocketSender)) {
 	if wsServer.userSendRoomMessageHandler == nil {
 		wsServer.userSendRoomMessageHandler = handler
+	}
+}
+
+func (wsServer *WebSocketServer) SubscribeOnGetRoomMessages(handler func(message UserGetRoomMessages, ws WebsocketSender)) {
+	if wsServer.UserGetRoomMessagesHandler == nil {
+		wsServer.UserGetRoomMessagesHandler = handler
 	}
 }
 
