@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"chat/app/components/user"
+	"chat/server/components/user"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

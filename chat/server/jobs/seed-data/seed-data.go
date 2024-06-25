@@ -1,10 +1,10 @@
 package seed_data
 
 import (
-	"chat/app/components/message"
-	"chat/app/components/room"
-	"chat/app/components/user"
-	"chat/app/database"
+	"chat/server/components/message"
+	"chat/server/components/room"
+	"chat/server/components/user"
+	"chat/server/database"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -37,9 +37,9 @@ type MessageJson struct {
 	Text       string `json:"text"`
 }
 
-const pathToUsersJson = "app/jobs/seed-data/data/users.json"
-const pathToRoomsJson = "app/jobs/seed-data/data/rooms.json"
-const pathToMessagesJson = "app/jobs/seed-data/data/messages.json"
+const pathToUsersJson = "server/jobs/seed-data/data/users.json"
+const pathToRoomsJson = "server/jobs/seed-data/data/rooms.json"
+const pathToMessagesJson = "server/jobs/seed-data/data/messages.json"
 
 func Seed() {
 	fmt.Println("Start seeding data...")

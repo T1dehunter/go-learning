@@ -1,6 +1,6 @@
 package auth
 
-import "chat/app/components/user"
+import "chat/server/components/user"
 
 type AuthService struct {
 	userRepository *user.UserRepository

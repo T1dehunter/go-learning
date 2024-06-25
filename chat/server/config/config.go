@@ -20,7 +20,7 @@ var once sync.Once
 
 func NewConfig() *Config {
 	once.Do(func() {
-		err := godotenv.Load("app/config/config.env")
+		err := godotenv.Load("server/config/config.env")
 		if err != nil {
 			log.Fatalf("Error on build config: unable to load config.env file: %e", err)
 		}

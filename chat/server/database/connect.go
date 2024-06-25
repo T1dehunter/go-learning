@@ -1,7 +1,7 @@
 package database
 
 import (
-	"chat/app/config"
+	"chat/server/config"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"

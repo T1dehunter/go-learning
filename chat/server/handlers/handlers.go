@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"chat/app/components/auth"
-	"chat/app/components/message"
-	"chat/app/components/room"
-	"chat/app/components/user"
-	"chat/app/weboscket"
+	"chat/server/components/auth"
+	"chat/server/components/message"
+	"chat/server/components/room"
+	"chat/server/components/user"
+	"chat/server/weboscket"
 	"context"
 	"encoding/json"
 	"fmt"
