@@ -1,3 +1,5 @@
-nodemon --exec "go run" ./main.go start --signal SIGTERM
+nodemon --exec "go run ./server start" --watch server --ext go --signal SIGTERM
+
+nodemon --exec "go run ./client" --watch client --ext go --signal SIGTERM
 
 go run main.go seed
