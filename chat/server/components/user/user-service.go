@@ -13,3 +13,11 @@ func NewUserService(userRepository *UserRepository) *UserService {
 func (userService *UserService) FindUserById(ctx context.Context, id int) *User {
 	return userService.userRepository.FindUserById(ctx, id)
 }
+
+func (userService *UserService) FindUserByAccessToken(ctx context.Context, accessToken string) *User {
+	return userService.userRepository.FindUserByAccessToken(ctx, accessToken)
+}
+
+func (userService *UserService) FindUserByNameAndPassword(ctx context.Context, name string, password string) *User {
+	return userService.userRepository.FindUserByNameAndPassword(ctx, name, password)
+}

@@ -3,19 +3,20 @@ WEBSOCKET ws://localhost:3000/chat
 Content-Type: application/json
 
 {
-  "name": "user_auth", "payload": {"userID": 1, "userName": "Alex", "accessToken": "Test1234"}
+  "type": "user_auth", "payload": {"userName": "Sandor Clegane", "password": "Test1234"}
 }
+
 
 ### connect user
 WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
 {
- "name": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
+ "type": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
 }
 === wait-for-server
 {
- "name": "user_connect", "payload": {"userID": 2, "accessToken": "Test1234"}
+ "type": "user_connect", "payload": {"userID": 2, "accessToken": "Test1234"}
 }
 
 ### join to room and send message

@@ -25,12 +25,13 @@ func (wsSender *WsSender) AddUserToNamespace(namespace string) {
 }
 
 func (wsSender *WsSender) SendMessageToUser(userID int, message string) {
-	if conn, ok := (*wsSender.connectedUsers)[userID]; ok {
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
-			log.Println("Error sending message", err)
-			return
-		}
-	}
+	//if conn, ok := (*wsSender.connectedUsers)[userID]; ok {
+	//	if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+	//		log.Println("Error sending message", err)
+	//		return
+	//	}
+	//}
+	wsSender.connection.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
 func (wsSender *WsSender) SendMessageToRoom(connectionID int, message string) {

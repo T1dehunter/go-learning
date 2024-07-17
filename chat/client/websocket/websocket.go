@@ -8,11 +8,13 @@ import (
 
 type Websocket struct {
 	dataChannel chan string
+	connection  *websocket.Conn
 }
 
 func NewWebsocket(dataChannel chan string) *Websocket {
 	return &Websocket{
 		dataChannel: dataChannel,
+		connection:  nil,
 	}
 }
 
@@ -24,19 +26,28 @@ func (ws *Websocket) Connect() {
 	if err != nil {
 		log.Fatal("Error connecting to WebSocket server:", err)
 	}
-	defer conn.Close()
+	//defer conn.Close()
+	ws.connection = conn
 
 	var message string
 
 	conn.WriteMessage(websocket.TextMessage, []byte(message))
 
-	for {
-		_, response, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Error reading from WebSocket:", err)
-			ws.dataChannel <- "Error reading from WebSocket"
-		} else {
-			ws.dataChannel <- string(response)
+	go func() {
+		for {
+			_, response, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("Error reading from WebSocket:", err)
+				ws.dataChannel <- "Error reading from WebSocket"
+			} else {
+				ws.dataChannel <- string(response)
+			}
 		}
+	}()
+}
+
+func (ws *Websocket) SendMessage(message []byte) {
+	if ws.connection != nil {
+		ws.connection.WriteMessage(websocket.TextMessage, message)
 	}
 }

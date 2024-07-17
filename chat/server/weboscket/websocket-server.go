@@ -56,27 +56,27 @@ func (wsServer *WebSocketServer) Listen(w http.ResponseWriter, r *http.Request) 
 }
 
 func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData []byte) {
-	var userConnectMessage UserConnectMessage
-	err := json.Unmarshal(messageData, &userConnectMessage)
-	if err == nil && userConnectMessage.Name == "user_connect" {
-		if wsServer.userConnectHandler != nil {
-			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
-			wsServer.userConnectHandler(userConnectMessage, sender)
-		}
-	}
-
 	var userAuthMessage UserAuthMessage
-	err = json.Unmarshal(messageData, &userAuthMessage)
-	if err == nil && userAuthMessage.Name == "user_auth" {
+	err := json.Unmarshal(messageData, &userAuthMessage)
+	if err == nil && userAuthMessage.Type == "user_auth" {
 		if wsServer.userAuthHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.userAuthHandler(userAuthMessage, sender)
 		}
 	}
 
+	var userConnectMessage UserConnectMessage
+	err = json.Unmarshal(messageData, &userConnectMessage)
+	if err == nil && userConnectMessage.Type == "user_connect" {
+		if wsServer.userConnectHandler != nil {
+			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
+			wsServer.userConnectHandler(userConnectMessage, sender)
+		}
+	}
+
 	var userCreateDirectRoomMessage UserCreateDirectRoomMessage
 	err = json.Unmarshal(messageData, &userCreateDirectRoomMessage)
-	if err == nil && userCreateDirectRoomMessage.Name == "user_create_direct_room" {
+	if err == nil && userCreateDirectRoomMessage.Type == "user_create_direct_room" {
 		if wsServer.userCreateDirectRoomHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.userCreateDirectRoomHandler(userCreateDirectRoomMessage, sender)
@@ -85,7 +85,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 
 	var userJoinToRoomMessage UserJoinToRoomMessage
 	err = json.Unmarshal(messageData, &userJoinToRoomMessage)
-	if err == nil && userJoinToRoomMessage.Name == "user_join_to_room" {
+	if err == nil && userJoinToRoomMessage.Type == "user_join_to_room" {
 		if wsServer.userJoinToRoomHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.userJoinToRoomHandler(userJoinToRoomMessage, sender)
@@ -94,7 +94,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 
 	var userLeaveRoomMessage UserLeaveRoomMessage
 	err = json.Unmarshal(messageData, &userLeaveRoomMessage)
-	if err == nil && userLeaveRoomMessage.Name == "user_leave_room" {
+	if err == nil && userLeaveRoomMessage.Type == "user_leave_room" {
 		if wsServer.userLeaveRoomHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.userLeaveRoomHandler(userLeaveRoomMessage, sender)
@@ -103,7 +103,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 
 	var userSendDirectMessage UserSendDirectMessage
 	err = json.Unmarshal(messageData, &userSendDirectMessage)
-	if err == nil && userSendDirectMessage.Name == "direct_message" {
+	if err == nil && userSendDirectMessage.Type == "direct_message" {
 		if wsServer.userSendDirectMessageHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.userSendDirectMessageHandler(userSendDirectMessage, sender)
@@ -112,7 +112,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 
 	var userSendRoomMessage UserSendRoomMessage
 	err = json.Unmarshal(messageData, &userSendRoomMessage)
-	if err == nil && userSendRoomMessage.Name == "room_message" {
+	if err == nil && userSendRoomMessage.Type == "room_message" {
 		if wsServer.userSendRoomMessageHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.userSendRoomMessageHandler(userSendRoomMessage, sender)
@@ -121,7 +121,7 @@ func (wsServer *WebSocketServer) HandleMessage(conn *websocket.Conn, messageData
 
 	var userGetRoomMessages UserGetRoomMessages
 	err = json.Unmarshal(messageData, &userGetRoomMessages)
-	if err == nil && userGetRoomMessages.Name == "user_get_room_messages" {
+	if err == nil && userGetRoomMessages.Type == "user_get_room_messages" {
 		if wsServer.UserGetRoomMessagesHandler != nil {
 			sender := NewWsSender(conn, &wsServer.connectedUsers, &wsServer.nameSpace)
 			wsServer.UserGetRoomMessagesHandler(userGetRoomMessages, sender)

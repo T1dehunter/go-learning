@@ -23,34 +23,22 @@ func (textParser *TextParser) Parse(message string) UserMessage {
 func (textParser *TextParser) parseAuthMessage(message string) *UserAuthMessage {
 	res := strings.Split(message, ":")
 	if len(res) != 2 {
-		return &UserAuthMessage{
-			name:     "",
-			password: "",
-		}
+		return nil
 	}
 	command, payload := res[0], res[1]
 	if command != "auth" || payload == "" {
-		return &UserAuthMessage{
-			name:     "",
-			password: "",
-		}
+		return nil
 	}
 	payloadParts := strings.Split(payload, "|")
 	if len(payloadParts) != 2 {
-		return &UserAuthMessage{
-			name:     "",
-			password: "",
-		}
+		return nil
 	}
 	for i, part := range payloadParts {
 		payloadParts[i] = strings.Trim(part, "{}")
 	}
 	userName, password := payloadParts[0], payloadParts[1]
 	if userName == "" || password == "" {
-		return &UserAuthMessage{
-			name:     "",
-			password: "",
-		}
+		return nil
 	}
 	return &UserAuthMessage{
 		name:     userName,

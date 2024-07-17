@@ -27,22 +27,17 @@ func testParseAuthMessage(test *testing.T) {
 	}
 
 	testData := []struct {
-		input         string
-		parsedMessage UserAuthMessage
+		input string
 	}{
-		{"auth:{Sandor Clegane}|{Test1234%}", UserAuthMessage{"Sandor Clegane", "Test1234%"}},
-		{"auth:{Sandor Clegane}", UserAuthMessage{"", ""}},
-		{"auth:{Test1234%}", UserAuthMessage{"", ""}},
-		{"asdad", UserAuthMessage{"", ""}},
-		{"", UserAuthMessage{"", ""}},
+		{"auth:{Sandor Clegane}"},
+		{"auth:{Test1234%}"},
+		{"asdad"},
+		{""},
 	}
 	for _, data := range testData {
-		userAuthMessage := textParser.parseAuthMessage(data.input)
-		if userAuthMessage.name != data.parsedMessage.name {
-			test.Errorf("parseAuthMessage() returns incorrect name, got: %s", userAuthMessage.name)
-		}
-		if userAuthMessage.password != data.parsedMessage.password {
-			test.Errorf("parseAuthMessage() returns incorrect password got: %s", userAuthMessage.password)
+		parsedMessage := textParser.parseAuthMessage(data.input)
+		if parsedMessage != nil {
+			test.Errorf("parseAuthMessage() returns incorrect value, expected nill, got: %v", parsedMessage)
 		}
 	}
 }

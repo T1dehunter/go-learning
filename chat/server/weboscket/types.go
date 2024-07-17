@@ -1,7 +1,15 @@
 package weboscket
 
+type UserAuthMessage struct {
+	Type    string `json:"type"`
+	Payload struct {
+		UserName string `json:"userName"`
+		Password string `json:"password"`
+	} `json:"payload"`
+}
+
 type UserConnectMessage struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		UserID      int    `json:"userID"`
 		UserName    string `json:"userName"`
@@ -9,17 +17,8 @@ type UserConnectMessage struct {
 	}
 }
 
-type UserAuthMessage struct {
-	Name    string `json:"name"`
-	Payload struct {
-		UserID      int    `json:"userID"`
-		UserName    string `json:"userName"`
-		AccessToken string `json:"accessToken"`
-	} `json:"payload"`
-}
-
 type UserCreateDirectRoomMessage struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		CreatorID int `json:"creatorID"`
 		InviteeID int `json:"inviteeID"`
@@ -27,7 +26,7 @@ type UserCreateDirectRoomMessage struct {
 }
 
 type UserJoinToRoomMessage struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		UserID int `json:"userID"`
 		RoomID int `json:"roomID"`
@@ -35,7 +34,7 @@ type UserJoinToRoomMessage struct {
 }
 
 type UserLeaveRoomMessage struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		UserID int `json:"userID"`
 		RoomID int `json:"roomID"`
@@ -43,7 +42,7 @@ type UserLeaveRoomMessage struct {
 }
 
 type UserSendDirectMessage struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		UserID     int    `json:"userID"`
 		ReceiverID int    `json:"receiverID"`
@@ -53,7 +52,7 @@ type UserSendDirectMessage struct {
 }
 
 type UserSendRoomMessage struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		UserID  int    `json:"userID"`
 		RoomID  int    `json:"roomID"`
@@ -62,7 +61,7 @@ type UserSendRoomMessage struct {
 }
 
 type UserGetRoomMessages struct {
-	Name    string `json:"name"`
+	Type    string `json:"type"`
 	Payload struct {
 		UserID int `json:"userID"`
 		RoomID int `json:"roomID"`

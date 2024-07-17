@@ -13,6 +13,29 @@ import (
 	"time"
 )
 
+func HandleUserAuth(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService, roomService *room.RoomService) {
+	fmt.Printf("Handler HandleUserAuth received message -> %+v\n", message)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	defer cancel()
+
+	user := userService.FindUserByNameAndPassword(ctx, message.Payload.UserName, message.Payload.Password)
+	if user == nil {
+		log.Println("Error authenticating user: user not found")
+		return
+	}
+
+	log.Println("User is successfully authenticated")
+
+	time.Sleep(2 * time.Second)
+
+	// for testing purposes only, user's password is sent back to the user as access token
+	responseMsg := fmt.Sprintf("{\"type\": \"user_authenticated\", \"payload\": {\"userID\": %d, \"accessToken\": \"%s\"}}", user.Id, user.Password)
+	ws.SendMessageToUser(user.Id, responseMsg)
+
+}
+
 func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService) {
 	fmt.Printf("Handler HandleUserConnect received message -> %+v\n", message)
 
@@ -48,36 +71,8 @@ func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.Websoc
 
 	time.Sleep(2 * time.Second)
 
-	ws.SendMessageToUser(user.Id, "You are connected")
-}
-
-func HandleUserAuth(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService, roomService *room.RoomService) {
-	fmt.Printf("Handler HandleUserAuth received message -> %+v\n", message)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-	defer cancel()
-
-	user := userService.FindUserById(ctx, message.Payload.UserID)
-
-	if user == nil {
-		log.Println("Error authenticating user: user not found")
-		return
-	}
-
-	isAuthenticated := authService.AuthenticateUser(user, message.Payload.AccessToken)
-	if !isAuthenticated {
-		log.Println("User is not authenticated")
-		ws.SendMessageToUser(user.Id, "Authentication error")
-		return
-	}
-
-	log.Println("User is successfully authenticated")
-
-	time.Sleep(2 * time.Second)
-
-	ws.SendMessageToUser(user.Id, "Authentication success!!!")
-
+	responseMsg := "{\"type\": \"user_connected\", \"payload\": {\"success\": true}}"
+	ws.SendMessageToUser(user.Id, responseMsg)
 }
 
 func HandleUserCreateDirectRoom(message weboscket.UserCreateDirectRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -21,6 +20,19 @@ const LOGO = `            __,__
            '-----'
 `
 
+func getAuthMessage(userName string) string {
+	return fmt.Sprintf(`Welcome %s!Thank you for using our chat. 
+Please start by enter chat credentials in following format auth:{Sandor Clegane}|{Test1234}`, userName)
+	//Please start by enter chat credentials in following format [user name]:[password]`, userName)
+	//return fmt.Sprintf(`Hello %s!
+	//This is the console client for chat server!
+	//Please enter chat credentials in following format ---> auth:{Sandor Clegane}|{Test1234}`, userName)
+}
+
+func getJoinRoomMessage(userName string) string {
+	return fmt.Sprintf(`Dear %s, please enter the room ID to join in following format ---> join_room:{1}`, userName)
+}
+
 type UserMessage interface {
 	isMessage()
 }
@@ -30,7 +42,7 @@ type UserAuthMessage struct {
 	password string
 }
 
-func (userAuthMsg *UserAuthMessage) getPayload() (string, string) {
+func (userAuthMsg *UserAuthMessage) GetPayload() (string, string) {
 	return userAuthMsg.name, userAuthMsg.password
 }
 
@@ -48,39 +60,30 @@ func (userJoinToRoomMsg *UserJoinToRoomMessage) getPayload() (int, int) {
 func (userJoinToRoomMsg *UserJoinToRoomMessage) isMessage() {}
 
 type Console struct {
-	dataChannel      chan *UserMessage
+	dataChannel      chan UserMessage
 	userInputHandler func(message string)
 }
 
 func NewConsole() *Console {
-	dataChannel := make(chan *UserMessage)
+	dataChannel := make(chan UserMessage)
 	return &Console{
 		dataChannel: dataChannel,
 	}
 }
 
-// returns channel for user messages
-func (console *Console) Start(userName string) chan *UserMessage {
-	message := fmt.Sprintf(`Hello %s!
-This is the console client for chat server!
-Please enter chat credentials in following format ---> auth:{username}|{password}`, userName)
-
+func (console *Console) Start(userName string) chan UserMessage {
 	fmt.Println("Console client starting...")
 	fmt.Printf(LOGO)
-	fmt.Printf(message)
+	fmt.Printf(getAuthMessage(userName))
 	fmt.Printf("\n")
-
-	//fmt.Printf("Hello %s! This is the console client for chat server!\n", userName)
-	//fmt.Printf("Please enter login and password...\n")
-	//connectMsg := "{\n \"name\": \"user_connect\", \"payload\": {\"userID\": 1, \"accessToken\": \"Test1234\"}\n}"
-	//joinMsg := "{\n \"name\": \"user_join_to_room\", \"payload\": {\"userID\": 1, \"roomID\": 1, \"roomName\": \"Room 1\"}\n}"
-	//roomeMessagesMsg := "{\n \"name\": \"user_get_room_messages\", \"payload\": {\"userID\": 1, \"roomID\": 1}\n}"
 
 	in := os.Stdin
 	out := os.Stdout
 	const PROMPT = ">>> "
-	//var userMessage string
+
 	scanner := bufio.NewScanner(in)
+
+	textParser := NewTextParser()
 
 	fmt.Fprintf(out, PROMPT)
 
@@ -95,10 +98,12 @@ Please enter chat credentials in following format ---> auth:{username}|{password
 			}
 
 			line := scanner.Text()
-			userMsg := console.parseUserMessage(line)
-			console.dataChannel <- &userMsg
 
-			// sleep for a while
+			authMessage := textParser.parseAuthMessage(line)
+			if authMessage != nil {
+				console.dataChannel <- authMessage
+			}
+
 			time.Sleep(100 * time.Millisecond)
 
 			fmt.Fprintf(out, PROMPT)
@@ -108,30 +113,10 @@ Please enter chat credentials in following format ---> auth:{username}|{password
 	return console.dataChannel
 }
 
-func (console *Console) parseUserMessage(message string) UserMessage {
-	if strings.Contains(message, "auth") {
-		return console.parseUserAuthMessage(message)
-	}
-	return nil
-}
-
-func (console *Console) parseUserAuthMessage(message string) *UserAuthMessage {
-	// split message by '|'
-	res := strings.Split(message, "|")
-	userName, password := res[0], res[1]
-	if userName == "" || password == "" {
-		fmt.Println("Please enter correct credentials")
-		return &UserAuthMessage{
-			name:     "",
-			password: "",
-		}
-	}
-	return &UserAuthMessage{
-		name:     userName,
-		password: password,
-	}
+func (console *Console) PrintJoinRoomMessage(userName string) {
+	fmt.Printf(getJoinRoomMessage(userName))
 }
 
 func (console *Console) PrintText(text string) {
-	fmt.Printf(text)
+	fmt.Println(text)
 }
