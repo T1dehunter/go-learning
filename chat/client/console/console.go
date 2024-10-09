@@ -21,9 +21,8 @@ const LOGO = `            __,__
 `
 
 func getAuthMessage(userName string) string {
-	return fmt.Sprintf(`Welcome %s!Thank you for using our chat. 
-Please start by enter chat credentials in following format auth:{Sandor Clegane}|{Test1234}`, userName)
-	//Please start by enter chat credentials in following format [user name]:[password]`, userName)
+	return fmt.Sprintf(`Welcome %s!Thank you for using our chat.
+Please start by enter chat credentials in following format [name]:[password]`, userName)
 	//return fmt.Sprintf(`Hello %s!
 	//This is the console client for chat server!
 	//Please enter chat credentials in following format ---> auth:{Sandor Clegane}|{Test1234}`, userName)
@@ -60,18 +59,18 @@ func (userJoinToRoomMsg *UserJoinToRoomMessage) getPayload() (int, int) {
 func (userJoinToRoomMsg *UserJoinToRoomMessage) isMessage() {}
 
 type Console struct {
-	dataChannel      chan UserMessage
+	dataChannel      chan string
 	userInputHandler func(message string)
 }
 
 func NewConsole() *Console {
-	dataChannel := make(chan UserMessage)
+	dataChannel := make(chan string)
 	return &Console{
 		dataChannel: dataChannel,
 	}
 }
 
-func (console *Console) Start(userName string) chan UserMessage {
+func (console *Console) Start(userName string) chan string {
 	fmt.Println("Console client starting...")
 	fmt.Printf(LOGO)
 	fmt.Printf(getAuthMessage(userName))
@@ -83,7 +82,7 @@ func (console *Console) Start(userName string) chan UserMessage {
 
 	scanner := bufio.NewScanner(in)
 
-	textParser := NewTextParser()
+	//textParser := NewTextParser()
 
 	fmt.Fprintf(out, PROMPT)
 
@@ -97,12 +96,14 @@ func (console *Console) Start(userName string) chan UserMessage {
 				return
 			}
 
-			line := scanner.Text()
+			inputText := scanner.Text()
 
-			authMessage := textParser.parseAuthMessage(line)
-			if authMessage != nil {
-				console.dataChannel <- authMessage
-			}
+			console.dataChannel <- inputText
+
+			//authMessage := textParser.parseAuthMessage(line)
+			//if authMessage != nil {
+			//	console.dataChannel <- authMessage
+			//}
 
 			time.Sleep(100 * time.Millisecond)
 

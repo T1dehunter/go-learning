@@ -2,6 +2,7 @@ package main
 
 import (
 	"chat/client/console"
+	"chat/client/userInputParser"
 	"chat/client/websocket"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	CLIENT_STARTED      = "CLIENT_STARTED"
+	USER_AUTHENTICATING = "USER_AUTHENTICATING"
 	USER_AUTHENTICATED  = "USER_AUTHENTICATED"
 	USER_CONNECTED      = "USER_CONNECTED"
 	USER_JOINED_TO_ROOM = "USER_JOINED_TO_ROOM"
@@ -65,7 +66,7 @@ func NewClient(input io.Reader, output io.Writer, userName string) *Client {
 
 	return &Client{
 		userName:      userName,
-		currentState:  CLIENT_STARTED,
+		currentState:  USER_AUTHENTICATING,
 		input:         input,
 		output:        output,
 		websocket:     *ws,
@@ -77,26 +78,40 @@ func (client *Client) Start() {
 
 	con := console.NewConsole()
 
-	dataChanel := con.Start(client.userName)
+	userInputChannel := con.Start(client.userName)
 
-	for message := range dataChanel {
-		switch msg := message.(type) {
+	userInputParser := userInputParser.NewUserInputParser()
 
-		case *console.UserAuthMessage:
-			fmt.Println("Got user auth message: ", msg)
-			client.authenticateUser(msg, con)
+	for userMessage := range userInputChannel {
+		if client.isUserAuthenticatingState() {
+			userName, password := userInputParser.ParseCredentials(userMessage)
+			fmt.Printf("User name: %s, password: %s \n", userName, password)
+
+			client.authenticateUser(userName, password, con)
 
 			fmt.Println("Auth Token after user auth: ", client.wsAuthToken)
+
 			client.connectUser(con)
 
 			con.PrintJoinRoomMessage(client.userName)
-
-		case *console.UserJoinToRoomMessage:
-			fmt.Println("Got user join to room message: ", msg)
-
-		default:
-			fmt.Println("Unknown user message", message)
 		}
+		//switch msg := userMessage.(type) {
+		//
+		//case *console.UserAuthMessage:
+		//	fmt.Println("Got user auth message: ", msg)
+		//	client.authenticateUser(msg, con)
+		//
+		//	fmt.Println("Auth Token after user auth: ", client.wsAuthToken)
+		//	client.connectUser(con)
+		//
+		//	con.PrintJoinRoomMessage(client.userName)
+		//
+		//case *console.UserJoinToRoomMessage:
+		//	fmt.Println("Got user join to room message: ", msg)
+		//
+		//default:
+		//	fmt.Println("Unknown user message", userMessage)
+		//}
 	}
 }
 
@@ -104,12 +119,12 @@ func (client *Client) Stop() {
 	close(client.wsDataChannel)
 }
 
-func (client *Client) authenticateUser(message *console.UserAuthMessage, console *console.Console) {
-	if !client.isClientStartedState() {
+func (client *Client) authenticateUser(name string, password string, console *console.Console) {
+	if !client.isUserAuthenticatingState() {
 		return
 	}
 
-	name, password := message.GetPayload()
+	//name, password := message.GetPayload()
 
 	// auth:{Sandor Clegane}|{Test1234}
 	// auth:{Arya Stark}|{Test4321}
@@ -182,8 +197,8 @@ func (client *Client) connectUser(console *console.Console) {
 	}
 }
 
-func (client *Client) isClientStartedState() bool {
-	return client.currentState == CLIENT_STARTED
+func (client *Client) isUserAuthenticatingState() bool {
+	return client.currentState == USER_AUTHENTICATING
 }
 
 func (client *Client) isUserAuthenticatedState() bool {
