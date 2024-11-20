@@ -14,7 +14,7 @@ func NewMessageRepository(client *mongo.Client) *MessageRepository {
 }
 
 func (messageRepository *MessageRepository) FindMessagesByRoomID(ctx context.Context, roomID int) []*Message {
-	collection := messageRepository.client.Database("chat").Collection("messages")
+	collection := messageRepository.client.Database("chat").Collection("events")
 	cursor, err := collection.Find(ctx, map[string]interface{}{"roomID": roomID})
 	if err != nil {
 		panic(err)
@@ -34,11 +34,11 @@ func (messageRepository *MessageRepository) FindMessagesByRoomID(ctx context.Con
 }
 
 func (messageRepository *MessageRepository) DeleteAllMessages(ctx context.Context) {
-	messageRepository.client.Database("chat").Collection("messages").Drop(ctx)
+	messageRepository.client.Database("chat").Collection("events").Drop(ctx)
 }
 
 func (messageRepository *MessageRepository) AddMessage(ctx context.Context, message *Message) {
-	collection := messageRepository.client.Database("chat").Collection("messages")
+	collection := messageRepository.client.Database("chat").Collection("events")
 	data := map[string]interface{}{
 		"id":         message.Id,
 		"creatorID":  message.CreatorID,

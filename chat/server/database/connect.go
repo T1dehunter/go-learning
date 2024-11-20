@@ -30,7 +30,7 @@ func Connect() *mongo.Client {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Successfully connected to MongoDB!")
+	fmt.Println("Successfully listrooms to MongoDB!")
 
 	return client
 }

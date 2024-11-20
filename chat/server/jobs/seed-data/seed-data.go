@@ -39,7 +39,7 @@ type MessageJson struct {
 
 const pathToUsersJson = "server/jobs/seed-data/data/users.json"
 const pathToRoomsJson = "server/jobs/seed-data/data/rooms.json"
-const pathToMessagesJson = "server/jobs/seed-data/data/messages.json"
+const pathToMessagesJson = "server/jobs/seed-data/data/events.json"
 
 func Seed() {
 	fmt.Println("Start seeding data...")
@@ -104,9 +104,9 @@ func readRooms() []room.Room {
 func seedMessages(ctx context.Context, client *mongo.Client) {
 	messageRepository := message.NewMessageRepository(client)
 	messages := readMessages()
-	fmt.Println("Deleting current messages...")
+	fmt.Println("Deleting current events...")
 	messageRepository.DeleteAllMessages(ctx)
-	fmt.Println("Adding new messages...")
+	fmt.Println("Adding new events...")
 	for _, message := range messages {
 		messageRepository.AddMessage(ctx, &message)
 	}

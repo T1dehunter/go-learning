@@ -2,34 +2,21 @@ package console
 
 import (
 	"bufio"
+	"chat/client/console/screens/auth"
+	"chat/client/console/screens/exit"
+	"chat/client/console/screens/listrooms"
+	"chat/client/console/screens/room"
+	"chat/client/console/screens/welcome"
+	"chat/client/console/types"
 	"fmt"
 	"os"
-	"time"
 )
 
-const LOGO = `            __,__
-   .--.  .-"     "-.  .--.
-  / .. \/  .-. .-.  \/ .. \
- | |  '|  /   Y   \  |'  | |
- | \   \  \ 0 | 0 /  /   / |
-  \ '- ,\.-"""""""-./, -' /
-   ''-' /_   ^ ^   _\ '-''
-       |  \._   _./  |
-       \   \ '~' /   /
-        '._ '-=-' _.'
-           '-----'
-`
+type PrintFunc func(string)
 
-func getAuthMessage(userName string) string {
-	return fmt.Sprintf(`Welcome %s!Thank you for using our chat.
-Please start by enter chat credentials in following format [name]:[password]`, userName)
-	//return fmt.Sprintf(`Hello %s!
-	//This is the console client for chat server!
-	//Please enter chat credentials in following format ---> auth:{Sandor Clegane}|{Test1234}`, userName)
-}
-
-func getJoinRoomMessage(userName string) string {
-	return fmt.Sprintf(`Dear %s, please enter the room ID to join in following format ---> join_room:{1}`, userName)
+type Screen interface {
+	Render()
+	Exit()
 }
 
 type UserMessage interface {
@@ -59,65 +46,110 @@ func (userJoinToRoomMsg *UserJoinToRoomMessage) getPayload() (int, int) {
 func (userJoinToRoomMsg *UserJoinToRoomMessage) isMessage() {}
 
 type Console struct {
-	dataChannel      chan string
+	renderCh         chan string
+	inputTextCh      chan string
+	userActionCh     chan interface{}
+	userActionResCh  chan interface{}
 	userInputHandler func(message string)
+	welcomeScreen    *welcome.WelcomeScreen
+	authScreen       *auth.AuthScreen
+	listRoomsScreen  *listrooms.ListRoomsScreen
+	roomScreen       *room.RoomScreen
+	exitScreen       *exit.ExitScreen
+	currentScreen    Screen
 }
 
 func NewConsole() *Console {
-	dataChannel := make(chan string)
+	renderCh := make(chan string)
+	inputTextCh := make(chan string, 1)
+	userActionCh := make(chan interface{})
+	userActionResCh := make(chan interface{})
+
 	return &Console{
-		dataChannel: dataChannel,
+		renderCh:        renderCh,
+		inputTextCh:     inputTextCh,
+		userActionCh:    userActionCh,
+		userActionResCh: userActionResCh,
+		welcomeScreen:   welcome.NewWelcomeScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
+		authScreen:      auth.NewAuthScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
+		listRoomsScreen: listrooms.NewListRoomsScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
+		roomScreen:      room.NewRoomScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
+		exitScreen:      exit.NewExitScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
 	}
 }
 
-func (console *Console) Start(userName string) chan string {
-	fmt.Println("Console client starting...")
-	fmt.Printf(LOGO)
-	fmt.Printf(getAuthMessage(userName))
-	fmt.Printf("\n")
+func (console *Console) Start() (chan interface{}, chan interface{}) {
+	console.subscribeOnRenderScreen()
+	console.subscribeOnInputText()
 
+	console.currentScreen = console.welcomeScreen
+	console.currentScreen.Render()
+
+	return console.userActionCh, console.userActionResCh
+}
+
+func (console *Console) subscribeOnRenderScreen() {
+	go func() {
+		for content := range console.renderCh {
+			console.print(content)
+		}
+	}()
+}
+
+func (console *Console) subscribeOnInputText() {
 	in := os.Stdin
-	out := os.Stdout
-	const PROMPT = ">>> "
+
+	//console.print(PROMPT)
 
 	scanner := bufio.NewScanner(in)
-
-	//textParser := NewTextParser()
-
-	fmt.Fprintf(out, PROMPT)
 
 	go func() {
 		for {
 			scanned := scanner.Scan()
-
 			if !scanned {
-				fmt.Println("no scanned")
-				close(console.dataChannel)
+				//fmt.Println("ttt")
 				return
 			}
 
 			inputText := scanner.Text()
 
-			console.dataChannel <- inputText
+			console.inputTextCh <- inputText
 
-			//authMessage := textParser.parseAuthMessage(line)
-			//if authMessage != nil {
-			//	console.dataChannel <- authMessage
-			//}
-
-			time.Sleep(100 * time.Millisecond)
-
-			fmt.Fprintf(out, PROMPT)
+			//time.Sleep(100 * time.Millisecond)
 		}
 	}()
-
-	return console.dataChannel
 }
 
-func (console *Console) PrintJoinRoomMessage(userName string) {
-	fmt.Printf(getJoinRoomMessage(userName))
+func (console *Console) print(text string) {
+	out := os.Stdout
+	fmt.Fprintf(out, "\033[H\033[J")
+	fmt.Fprintf(out, text)
 }
 
-func (console *Console) PrintText(text string) {
-	fmt.Println(text)
+func (console *Console) DisplayAuthScreen() {
+	console.currentScreen.Exit()
+	console.currentScreen = console.authScreen
+	console.currentScreen.Render()
+}
+
+func (console *Console) DisplayListRoomsScreen(userID int, userName string, userRooms []types.UserRoom) {
+	console.currentScreen.Exit()
+
+	console.listRoomsScreen.SetUserData(userID, userName, userRooms)
+
+	console.currentScreen = console.listRoomsScreen
+	console.currentScreen.Render()
+}
+
+func (console *Console) DisplayRoomScreen(userID int, userName string, roomID int, roomName string) {
+	console.currentScreen.Exit()
+	console.roomScreen.SetScreenData(roomName)
+	console.currentScreen = console.roomScreen
+	console.currentScreen.Render()
+}
+
+func (console *Console) DisplayExitScreen() {
+	console.currentScreen.Exit()
+	console.currentScreen = console.exitScreen
+	console.currentScreen.Render()
 }

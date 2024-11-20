@@ -24,15 +24,15 @@ WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
 {
- "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+ "type": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
 }
 === wait-for-server
 {
- "name": "user_join_to_room", "payload": {"userID": 2, "roomID": 1, "roomName": "Room 1"}
+ "type": "user_join_to_room", "payload": {"userID": 2, "roomID": 1, "roomName": "Room 1"}
 }
 === wait-for-server
 {
- "name": "room_message", "payload": {"userID": 1, "roomID": 1, "message": "Yo dudes!"}
+ "type": "room_message", "payload": {"userID": 1, "roomID": 1, "message": "Yo dudes!"}
 }
 
 
@@ -57,15 +57,15 @@ WEBSOCKET ws://localhost:3000/chat
 Content-Type: application-json // Used for content highlighting only
 
 {
- "name": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
+ "type": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
 }
 === wait-for-server
 {
- "name": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
+ "type": "user_join_to_room", "payload": {"userID": 1, "roomID": 1, "roomName": "Room 1"}
 }
 === wait-for-server
 {
- "name": "user_get_room_messages", "payload": {"userID": 1, "roomID": 1}
+ "type": "user_get_direct_messages", "payload": {"userID": 1, "roomID": 1}
 }
 === wait-for-server
 ###
@@ -89,9 +89,9 @@ Content-Type: application-json // Used for content highlighting only
 
 
 ### Request with client messages
-#// It is possible to specify client messages in request body. Use '===' to separate messages.
+#// It is possible to specify client events in request body. Use '===' to separate events.
 #// Add '=== wait-for-server' above a message to send it after a server response is received.
-#// To wait for N responses, add '=== wait-for-server' N times.
+#// To wait for N response, add '=== wait-for-server' N times.
 #WEBSOCKET ws://{{$exampleServer}}/ws
 #Content-Type: application/json // We use it for highlighting
 #
@@ -113,7 +113,7 @@ Content-Type: application-json // Used for content highlighting only
 #}
 #
 #### Requests with scripts
-#// Also, we can use scripts for sending messages to server and verifying messages from the server.
+#// Also, we can use scripts for sending events to server and verifying events from the server.
 #WEBSOCKET ws://{{$exampleServer}}/ws
 #Content-Type: application/json
 #

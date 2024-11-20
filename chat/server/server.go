@@ -39,12 +39,12 @@ func (server *Server) Start() {
 
 	http.HandleFunc("/chat", server.websocket.Listen)
 
-	server.websocket.SubscribeOnUserConnect(func(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserConnect(message, ws, server.userService, server.authService)
-	})
-
 	server.websocket.SubscribeOnUserAuth(func(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender) {
 		handlers.HandleUserAuth(message, ws, server.userService, server.authService, server.roomService)
+	})
+
+	server.websocket.SubscribeOnUserConnect(func(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserConnect(message, ws, server.userService, server.authService, server.roomService)
 	})
 
 	server.websocket.SubscribeOnUserCreateDirectRoom(func(message weboscket.UserCreateDirectRoomMessage, ws weboscket.WebsocketSender) {

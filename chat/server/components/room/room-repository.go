@@ -26,6 +26,34 @@ func (roomRepository *RoomRepository) FindRoomById(id int) *Room {
 	return room
 }
 
+func (roomRepository *RoomRepository) FindRoomsByUserId(ctx context.Context, userId int) []*Room {
+	rooms := make([]*Room, 0)
+
+	collection := roomRepository.client.Database("chat").Collection("rooms")
+	// map with inner map
+	data := map[string]interface{}{"userIds": map[string]interface{}{"$in": []int{userId}}}
+	cursor, err := collection.Find(ctx, data)
+	if err != nil {
+		panic(err)
+	}
+	defer cursor.Close(ctx)
+
+	rooms = make([]*Room, 0)
+	for cursor.Next(ctx) {
+		var room Room
+		err := cursor.Decode(&room)
+		if err != nil {
+			panic(err)
+		}
+		rooms = append(rooms, &room)
+	}
+
+	//rooms = append(rooms, NewRoom(1, "Room 1", "group", []int{1, 2, 3}))
+	//rooms = append(rooms, NewRoom(2, "Room 2", "group", []int{1, 4, 5}))
+
+	return rooms
+}
+
 func (roomRepository *RoomRepository) DeleteAllRooms(ctx context.Context) {
 	roomRepository.client.Database("chat").Collection("rooms").Drop(ctx)
 }

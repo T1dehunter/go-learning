@@ -1,0 +1,3 @@
+package symbols
+
+const Prompt = ">>> "

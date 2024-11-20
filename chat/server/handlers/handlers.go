@@ -5,6 +5,7 @@ import (
 	"chat/server/components/message"
 	"chat/server/components/room"
 	"chat/server/components/user"
+	"chat/server/handlers/response"
 	"chat/server/weboscket"
 	"context"
 	"encoding/json"
@@ -23,6 +24,8 @@ func HandleUserAuth(message weboscket.UserAuthMessage, ws weboscket.WebsocketSen
 	user := userService.FindUserByNameAndPassword(ctx, message.Payload.UserName, message.Payload.Password)
 	if user == nil {
 		log.Println("Error authenticating user: user not found")
+		responseMsg := fmt.Sprintf("{\"type\": \"user_not_authenticated\", \"payload\": {\"userID\": \"\", \"accessToken\": \"\"}}")
+		ws.SendMessageToUser(1, responseMsg)
 		return
 	}
 
@@ -31,12 +34,31 @@ func HandleUserAuth(message weboscket.UserAuthMessage, ws weboscket.WebsocketSen
 	time.Sleep(2 * time.Second)
 
 	// for testing purposes only, user's password is sent back to the user as access token
-	responseMsg := fmt.Sprintf("{\"type\": \"user_authenticated\", \"payload\": {\"userID\": %d, \"accessToken\": \"%s\"}}", user.Id, user.Password)
-	ws.SendMessageToUser(user.Id, responseMsg)
+	//responseMsg := fmt.Sprintf("{\"type\": \"user_authenticated\", \"payload\": {\"userID\": %d, \"userName\": \"%s\", \"accessToken\": \"%s\"}}", user.Id, user.Name, user.Password)
+
+	res := response.UserAuthenticatedMsg{
+		Type: "user_authenticated",
+		Payload: struct {
+			UserID      int    `json:"userID"`
+			UserName    string `json:"userName"`
+			AccessToken string `json:"accessToken"`
+		}{
+			UserID:      user.Id,
+			UserName:    user.Name,
+			AccessToken: user.Password,
+		},
+	}
+
+	resMsg, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println("Error converting response to JSON:", err)
+		return
+	}
+	ws.SendMessageToUser(user.Id, string(resMsg))
 
 }
 
-func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService) {
+func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender, userService *user.UserService, authService *auth.AuthService, roomService *room.RoomService) {
 	fmt.Printf("Handler HandleUserConnect received message -> %+v\n", message)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -67,12 +89,34 @@ func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.Websoc
 		ws.AddUserToNamespace(roomName)
 	}
 
-	log.Println("User connected")
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	userRooms := roomService.FindUserRooms(ctx, user.Id)
 
 	time.Sleep(2 * time.Second)
 
-	responseMsg := "{\"type\": \"user_connected\", \"payload\": {\"success\": true}}"
-	ws.SendMessageToUser(user.Id, responseMsg)
+	roomsResponse := []response.UserRoom{}
+	for _, room := range userRooms {
+		roomsResponse = append(roomsResponse, response.UserRoom{
+			ID:   room.Id,
+			Name: room.Name,
+		})
+	}
+	res := response.UserConnectedMsg{
+		Type: "user_connected",
+		Payload: struct {
+			Success bool                `json:"success"`
+			Rooms   []response.UserRoom `json:"rooms"`
+		}{
+			Success: true,
+			Rooms:   roomsResponse,
+		},
+	}
+	resMsg, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println("Error converting response to JSON:", err)
+		return
+	}
+	ws.SendMessageToUser(user.Id, string(resMsg))
 }
 
 func HandleUserCreateDirectRoom(message weboscket.UserCreateDirectRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
@@ -140,8 +184,26 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	userName := fmt.Sprintf("Dear user %s", user.Name)
 	userMsg := fmt.Sprintf("%s you are joined to room %s", userName, room.Name)
 
-	ws.SendMessageToUser(user.Id, userMsg)
-
+	res := response.UserJoinedToRoomMsg{
+		Type: "user_joined_to_room",
+		Payload: struct {
+			Success  bool   `json:"success"`
+			RoomID   int    `json:"roomID"`
+			RoomName string `json:"roomName"`
+			Msg      string `json:"msg"`
+		}{
+			Success:  true,
+			RoomID:   room.Id,
+			RoomName: room.Name,
+			Msg:      userMsg,
+		},
+	}
+	resMsg, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println("Error converting response to JSON:", err)
+		return
+	}
+	ws.SendMessageToUser(user.Id, string(resMsg))
 }
 
 func HandleUserLeaveRoom(message weboscket.UserLeaveRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
@@ -262,19 +324,19 @@ func HandleGetRoomMessages(message weboscket.UserGetRoomMessages, ws weboscket.W
 	user := userService.FindUserById(ctx, message.Payload.UserID)
 
 	if user == nil {
-		log.Println("Error getting room messages: user not found")
+		log.Println("Error getting room events: user not found")
 		return
 	}
 
 	room := roomService.FindRoomById(message.Payload.RoomID)
 
 	if room == nil {
-		log.Println("Error getting room messages: room not found")
+		log.Println("Error getting room events: room not found")
 		return
 	}
 
 	if !room.IsHasUser(user.Id) {
-		log.Println("Error getting room messages: user is not in room")
+		log.Println("Error getting room events: user is not in room")
 		return
 	}
 
@@ -284,7 +346,7 @@ func HandleGetRoomMessages(message weboscket.UserGetRoomMessages, ws weboscket.W
 
 	jsonMessages, _ := json.Marshal(messages)
 
-	log.Println("User got room messages:", string(jsonMessages))
+	log.Println("User got room events:", string(jsonMessages))
 
 	ws.SendMessageToUser(user.Id, string(jsonMessages))
 }

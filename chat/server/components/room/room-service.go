@@ -1,6 +1,9 @@
 package room
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type RoomService struct {
 	roomRepository *RoomRepository
@@ -12,6 +15,10 @@ func NewRoomService(roomRepository *RoomRepository) *RoomService {
 
 func (romService *RoomService) FindRoomById(id int) *Room {
 	return romService.roomRepository.FindRoomById(id)
+}
+
+func (roomService *RoomService) FindUserRooms(ctx context.Context, userId int) []*Room {
+	return roomService.roomRepository.FindRoomsByUserId(ctx, userId)
 }
 
 func (roomService *RoomService) JoinUser(userId int, roomId int) bool {

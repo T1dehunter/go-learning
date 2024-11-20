@@ -2,71 +2,45 @@ package main
 
 import (
 	"chat/client/console"
-	"chat/client/userInputParser"
+	"chat/client/console/events"
+	consoleTypes "chat/client/console/types"
 	"chat/client/websocket"
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 )
 
 const (
-	USER_AUTHENTICATING = "USER_AUTHENTICATING"
-	USER_AUTHENTICATED  = "USER_AUTHENTICATED"
-	USER_CONNECTED      = "USER_CONNECTED"
-	USER_JOINED_TO_ROOM = "USER_JOINED_TO_ROOM"
+	stateUserWelcome       = "USER_WELCOME"
+	stateUserAuthProcess   = "USER_AUTH_PROCESS"
+	stateUserAuthenticated = "USER_AUTHENTICATED"
+	stateUserConnected     = "USER_CONNECTED"
+	stateUserJoinedToRoom  = "USER_JOINED_TO_ROOM"
+	stateUserExit          = "USER_EXIT"
 )
 
-type UserAuthMessageWs struct {
-	Type    string `json:"type"`
-	Payload struct {
-		UserName string `json:"userName"`
-		Password string `json:"password"`
-	}
-}
-
-type UserAuthMessageResponseWs struct {
-	Type    string `json:"type"`
-	Payload struct {
-		UserID      int    `json:"userID"`
-		AccessToken string `json:"accessToken"`
-	}
-}
-
-type UserConnectMessageWs struct {
-	Type    string `json:"type"`
-	Payload struct {
-		UserID      int    `json:"userID"`
-		AccessToken string `json:"accessToken"`
-	}
-}
-
-type UserConnectMessageResponseWs struct {
-	Type    string `json:"type"`
-	Payload struct {
-		Success bool `json:"success"`
-	}
+type AuthenticatedUser struct {
+	ID          int
+	Name        string
+	AccessToken string
 }
 
 type Client struct {
-	userName      string
-	currentState  string
+	user          *AuthenticatedUser
+	state         string
 	input         io.Reader
 	output        io.Writer
 	websocket     websocket.Websocket
 	wsDataChannel chan string
-	wsAuthToken   string
 }
 
-func NewClient(input io.Reader, output io.Writer, userName string) *Client {
+func NewClient(input io.Reader, output io.Writer) *Client {
 	wsDataChannel := make(chan string)
 	ws := websocket.NewWebsocket(wsDataChannel)
 
 	ws.Connect()
 
 	return &Client{
-		userName:      userName,
-		currentState:  USER_AUTHENTICATING,
+		state:         stateUserWelcome,
 		input:         input,
 		output:        output,
 		websocket:     *ws,
@@ -75,152 +49,157 @@ func NewClient(input io.Reader, output io.Writer, userName string) *Client {
 }
 
 func (client *Client) Start() {
+	consl := console.NewConsole()
 
-	con := console.NewConsole()
+	userActionCh, userActionResCh := consl.Start()
 
-	userInputChannel := con.Start(client.userName)
+	// TODO - temp for development
+	client.customizeState(consl)
 
-	userInputParser := userInputParser.NewUserInputParser()
-
-	for userMessage := range userInputChannel {
-		if client.isUserAuthenticatingState() {
-			userName, password := userInputParser.ParseCredentials(userMessage)
-			fmt.Printf("User name: %s, password: %s \n", userName, password)
-
-			client.authenticateUser(userName, password, con)
-
-			fmt.Println("Auth Token after user auth: ", client.wsAuthToken)
-
-			client.connectUser(con)
-
-			con.PrintJoinRoomMessage(client.userName)
-		}
-		//switch msg := userMessage.(type) {
-		//
-		//case *console.UserAuthMessage:
-		//	fmt.Println("Got user auth message: ", msg)
-		//	client.authenticateUser(msg, con)
-		//
-		//	fmt.Println("Auth Token after user auth: ", client.wsAuthToken)
-		//	client.connectUser(con)
-		//
-		//	con.PrintJoinRoomMessage(client.userName)
-		//
-		//case *console.UserJoinToRoomMessage:
-		//	fmt.Println("Got user join to room message: ", msg)
-		//
-		//default:
-		//	fmt.Println("Unknown user message", userMessage)
-		//}
-	}
+	client.listenUserActions(userActionCh, userActionResCh, consl)
 }
 
 func (client *Client) Stop() {
 	close(client.wsDataChannel)
 }
 
-func (client *Client) authenticateUser(name string, password string, console *console.Console) {
-	if !client.isUserAuthenticatingState() {
-		return
+// for development purposes
+func (client *Client) customizeState(console *console.Console) {
+	user := &AuthenticatedUser{
+		ID:          1,
+		Name:        "Sandor Clegane",
+		AccessToken: "Test1234",
 	}
+	userRooms := client.connectUser(user)
+	client.setUserData(user)
+	client.setState(stateUserConnected)
+	console.DisplayListRoomsScreen(user.ID, user.Name, userRooms)
+}
 
-	//name, password := message.GetPayload()
+func (client *Client) listenUserActions(userActionCh chan interface{}, userActionResCh chan interface{}, consl *console.Console) {
+	for userMessage := range userActionCh {
+		fmt.Println("User message again: ", userMessage)
+		switch msg := userMessage.(type) {
 
-	// auth:{Sandor Clegane}|{Test1234}
-	// auth:{Arya Stark}|{Test4321}
-
-	userAuthMessage := UserAuthMessageWs{
-		Type: "user_auth",
-		Payload: struct {
-			UserName string `json:"userName"`
-			Password string `json:"password"`
-		}{
-			UserName: name,
-			Password: password,
-		},
-	}
-
-	authMessage, err := json.Marshal(userAuthMessage)
-	if err != nil {
-		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
-	}
-	client.websocket.SendMessage(authMessage)
-
-	var response UserAuthMessageResponseWs
-	for wsMessage := range client.wsDataChannel {
-		err := json.Unmarshal([]byte(wsMessage), &response)
-		if err != nil {
-			panic(err)
-		}
-		if err == nil && response.Type == "user_authenticated" {
-			client.wsAuthToken = response.Payload.AccessToken
-			client.setUserAuthenticatedState()
-			break
+		case events.UserChatConfirmed:
+			client.handleWelcomeUser(msg, consl)
+		case events.UserAuthRequest:
+			client.handleAuthUser(msg, consl, userActionResCh)
+		case events.UserJoinRoom:
+			client.handleUserJoinRoom(msg, consl)
+		case events.UserChatExit:
+			client.handleExitUser(msg, consl)
+		default:
+			fmt.Println("Unknown user message", userMessage)
 		}
 	}
 }
 
-func (client *Client) connectUser(console *console.Console) {
+func (client *Client) handleWelcomeUser(event events.UserChatConfirmed, console *console.Console) {
+	if !client.isUserWelcomeState() {
+		return
+	}
+	if event.IsConfirmed {
+		client.setState(stateUserAuthProcess)
+		console.DisplayAuthScreen()
+	} else {
+		fmt.Println("User wants to exit!!!")
+	}
+}
+
+func (client *Client) handleAuthUser(msg events.UserAuthRequest, console *console.Console, userActionResCh chan interface{}) {
+	if !client.isUserAuthProcessState() {
+		return
+	}
+	user := client.authenticateUser(msg.Username, msg.Password, userActionResCh)
+	if user != nil {
+		client.setUserData(user)
+		client.setState(stateUserAuthenticated)
+		client.handleUserConnect(user, console)
+	}
+}
+
+func (client *Client) handleUserConnect(user *AuthenticatedUser, console *console.Console) {
 	if !client.isUserAuthenticatedState() {
 		return
 	}
-
-	userConnectMessage := UserConnectMessageWs{
-		Type: "user_connect",
-		Payload: struct {
-			UserID      int    `json:"userID"`
-			AccessToken string `json:"accessToken"`
-		}{
-			UserID:      1,
-			AccessToken: client.wsAuthToken,
-		},
-	}
-
-	authMessage, err := json.Marshal(userConnectMessage)
-	if err != nil {
-		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
-	}
-	client.websocket.SendMessage(authMessage)
-
-	var response UserConnectMessageResponseWs
-	for wsMessage := range client.wsDataChannel {
-		err := json.Unmarshal([]byte(wsMessage), &response)
-		if err != nil {
-			panic(err)
-		}
-		if err == nil && response.Type == "user_connected" {
-			fmt.Printf("User connected: %+v\n", response.Payload)
-			client.setUserConnectedState()
-			break
-		}
-
-	}
+	userRooms := client.connectUser(user)
+	client.setState(stateUserConnected)
+	console.DisplayListRoomsScreen(user.ID, user.Name, userRooms)
 }
 
-func (client *Client) isUserAuthenticatingState() bool {
-	return client.currentState == USER_AUTHENTICATING
+func (client *Client) handleUserJoinRoom(event events.UserJoinRoom, console *console.Console) {
+	if !client.isUserConnectedState() {
+		return
+	}
+
+	res := client.websocket.SendUserJoinRoomMessage(client.user.ID, event.RoomID, client.user.AccessToken)
+	fmt.Println("User join room res::: ", res.Type)
+	fmt.Println("User join room res::: ", res.Payload)
+	client.setState(stateUserJoinedToRoom)
+	console.DisplayRoomScreen(client.user.ID, client.user.Name, res.Payload.RoomID, res.Payload.RoomName)
+}
+
+func (client *Client) handleExitUser(event events.UserChatExit, console *console.Console) {
+	client.setState(stateUserExit)
+	console.DisplayExitScreen()
+}
+
+func (client *Client) authenticateUser(name string, password string, userActionResCh chan interface{}) *AuthenticatedUser {
+	response := client.websocket.SendUserAuthMessage(name, password)
+	if response == nil || response.Type != "user_authenticated" {
+		event := events.UserAuthFailedRes{}
+		userActionResCh <- event
+		return nil
+	}
+
+	var user *AuthenticatedUser
+	if response.Type == "user_authenticated" {
+		user = &AuthenticatedUser{
+			ID:          response.Payload.UserID,
+			Name:        response.Payload.UserName,
+			AccessToken: response.Payload.AccessToken,
+		}
+	}
+	return user
+}
+
+func (client *Client) connectUser(user *AuthenticatedUser) []consoleTypes.UserRoom {
+	var userRooms []consoleTypes.UserRoom
+	response := client.websocket.SendUserConnectMessage(user.ID, user.AccessToken)
+	if response == nil || response.Type != "user_connected" {
+		return userRooms
+	}
+	for _, responseRoom := range response.Payload.Rooms {
+		userRooms = append(userRooms, consoleTypes.UserRoom{ID: responseRoom.ID, Name: responseRoom.Name, Type: responseRoom.Type})
+	}
+	return userRooms
+}
+
+func (client *Client) setUserData(user *AuthenticatedUser) {
+	client.user = user
+}
+
+func (client *Client) setState(nextState string) {
+	client.state = nextState
+}
+
+func (client *Client) isUserWelcomeState() bool {
+	return client.state == stateUserWelcome
+}
+
+func (client *Client) isUserAuthProcessState() bool {
+	return client.state == stateUserAuthProcess
 }
 
 func (client *Client) isUserAuthenticatedState() bool {
-	return client.currentState == USER_AUTHENTICATED
+	return client.state == stateUserAuthenticated
 }
 
 func (client *Client) isUserConnectedState() bool {
-	return client.currentState == USER_CONNECTED
+	return client.state == stateUserConnected
 }
 
 func (client *Client) isUserJoinedToRoomState() bool {
-	return client.currentState == USER_JOINED_TO_ROOM
-}
-
-func (client *Client) setUserAuthenticatedState() {
-	client.currentState = USER_AUTHENTICATED
-}
-
-func (client *Client) setUserConnectedState() {
-	client.currentState = USER_CONNECTED
-}
-
-func (client *Client) setUserJoinedToRoomState() {
-	client.currentState = USER_JOINED_TO_ROOM
+	return client.state == stateUserJoinedToRoom
 }
