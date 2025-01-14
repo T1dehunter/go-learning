@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"time"
 )
 
 type Websocket struct {
@@ -20,16 +21,26 @@ func NewWebsocket(dataChannel chan string) *Websocket {
 	}
 }
 
+func (ws *Websocket) initConnect() error {
+	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:3000/chat", nil)
+	if err == nil {
+		ws.connection = conn
+	}
+	return err
+}
+
 func (ws *Websocket) Connect() {
 	fmt.Println("Console websocket client starting...")
 	fmt.Println("\n")
 
-	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:3000/chat", nil)
+	err := ws.initConnect()
 	if err != nil {
-		log.Fatal("Error connecting to WebSocket server:", err)
+		message := fmt.Sprintf("Error connecting to WebSocket server: %s", err.Error())
+		fmt.Println(message)
+		ws.reConnect()
 	}
-	//defer conn.Close()
-	ws.connection = conn
+
+	conn := ws.connection
 
 	var message string
 
@@ -46,6 +57,26 @@ func (ws *Websocket) Connect() {
 			}
 		}
 	}()
+}
+
+func (ws *Websocket) reConnect() {
+	fmt.Println("Start reconnecting to the WebSocket server ...")
+
+	maxAttempts := 30
+	currentAttempt := 0
+
+	for currentAttempt < maxAttempts {
+		message := fmt.Sprintf("Reconnecting to the WebSocket server, attempt: %d", currentAttempt)
+		fmt.Println(message)
+
+		err := ws.initConnect()
+		if err == nil {
+			break
+		}
+
+		currentAttempt++
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (ws *Websocket) Disconnect() {
