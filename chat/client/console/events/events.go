@@ -38,4 +38,11 @@ type UserJoinRoom struct {
 	RoomID int
 }
 
+type UserSendMessage struct {
+	RoomID  int
+	Message string
+}
+
+type UserRoomExit struct{}
+
 type UserChatExit struct{}

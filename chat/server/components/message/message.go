@@ -6,6 +6,7 @@ type Message struct {
 	CreatorID  int
 	ReceiverID int
 	RoomID     int
+	CreatedAt  string
 }
 
 func NewMessage(id int, text string, creatorID int, receiverID int, roomID int) *Message {

@@ -96,9 +96,18 @@ func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.Websoc
 
 	roomsResponse := []response.UserRoom{}
 	for _, room := range userRooms {
+		users := userService.FindAllUsersByIds(ctx, room.UserIds)
+		var roomUsers []response.UserData
+		for _, user := range users {
+			roomUsers = append(roomUsers, response.UserData{
+				ID:   user.Id,
+				Name: user.Name,
+			})
+		}
 		roomsResponse = append(roomsResponse, response.UserRoom{
-			ID:   room.Id,
-			Name: room.Name,
+			ID:    room.Id,
+			Name:  room.Name,
+			Users: roomUsers,
 		})
 	}
 	res := response.UserConnectedMsg{
@@ -116,6 +125,7 @@ func HandleUserConnect(message weboscket.UserConnectMessage, ws weboscket.Websoc
 		fmt.Println("Error converting response to JSON:", err)
 		return
 	}
+	fmt.Println("resMsg", string(resMsg))
 	ws.SendMessageToUser(user.Id, string(resMsg))
 }
 
@@ -151,7 +161,7 @@ func HandleUserCreateDirectRoom(message weboscket.UserCreateDirectRoomMessage, w
 
 }
 
-func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
+func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService, messageService *message.MessageService) {
 	fmt.Printf("Handler HandleUserJoinToRoom received message -> %+v\n", message)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -177,6 +187,29 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	roomName := fmt.Sprintf("room_%d", room.Id)
 	ws.AddUserToNamespace(roomName)
 
+	roomMessages := messageService.FindRoomMessages(ctx, room.Id)
+
+	roomUsers := userService.FindAllUsersByIds(ctx, room.UserIds)
+	var roomUsersData []response.UserData
+	for _, user := range roomUsers {
+		roomUsersData = append(roomUsersData, response.UserData{
+			ID:   user.Id,
+			Name: user.Name,
+		})
+	}
+
+	var roomMessagesData []response.Message
+	for _, message := range roomMessages {
+		roomMessagesData = append(roomMessagesData, response.Message{
+			ID:         message.Id,
+			CreatorID:  message.CreatorID,
+			ReceiverID: message.ReceiverID,
+			RoomID:     message.RoomID,
+			Text:       message.Text,
+			CreatedAt:  message.CreatedAt,
+		})
+	}
+
 	log.Println("User joined to room")
 
 	time.Sleep(2 * time.Second)
@@ -184,18 +217,22 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	userName := fmt.Sprintf("Dear user %s", user.Name)
 	userMsg := fmt.Sprintf("%s you are joined to room %s", userName, room.Name)
 
+	fmt.Println("userMsg", userMsg)
+
 	res := response.UserJoinedToRoomMsg{
 		Type: "user_joined_to_room",
 		Payload: struct {
-			Success  bool   `json:"success"`
-			RoomID   int    `json:"roomID"`
-			RoomName string `json:"roomName"`
-			Msg      string `json:"msg"`
+			Success  bool                `json:"success"`
+			RoomID   int                 `json:"roomID"`
+			RoomName string              `json:"roomName"`
+			Users    []response.UserData `json:"users"`
+			Messages []response.Message  `json:"messages"`
 		}{
 			Success:  true,
 			RoomID:   room.Id,
 			RoomName: room.Name,
-			Msg:      userMsg,
+			Users:    roomUsersData,
+			Messages: roomMessagesData,
 		},
 	}
 	resMsg, err := json.Marshal(res)

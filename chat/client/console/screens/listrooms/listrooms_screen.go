@@ -6,12 +6,13 @@ import (
 	"chat/client/console/types"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type UserData struct {
 	ID    int
 	Name  string
-	Rooms []types.UserRoom
+	Rooms []types.Room
 }
 type ListRoomsScreen struct {
 	userData        UserData
@@ -38,7 +39,7 @@ func NewListRoomsScreen(
 	}
 }
 
-func (screen *ListRoomsScreen) SetUserData(userID int, userName string, rooms []types.UserRoom) {
+func (screen *ListRoomsScreen) SetUserData(userID int, userName string, rooms []types.Room) {
 	screen.userData = UserData{ID: userID, Name: userName, Rooms: rooms}
 }
 
@@ -61,7 +62,12 @@ Type the room number to enter or 'q' to quit.
 `
 	rooms := ""
 	for _, room := range screen.userData.Rooms {
-		rooms += fmt.Sprintf("[%d] %s --- %s \n", room.ID, room.Type, room.Name)
+		var userNames []string
+		for _, user := range room.Users {
+			userNames = append(userNames, user.Name)
+		}
+		joinedNames := strings.Join(userNames, ", ")
+		rooms += fmt.Sprintf("[%d]%s --- %s | %s \n", room.ID, room.Type, room.Name, joinedNames)
 	}
 
 	// fast render

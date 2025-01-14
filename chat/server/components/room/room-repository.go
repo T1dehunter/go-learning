@@ -14,16 +14,14 @@ func NewRoomRepository(client *mongo.Client) *RoomRepository {
 }
 
 func (roomRepository *RoomRepository) FindRoomById(id int) *Room {
-	rooms := make(map[int]*Room)
-
-	rooms[1] = NewRoom(1, "Room 1", "group", []int{1, 2, 3})
-
-	room, ok := rooms[id]
-	if !ok {
+	collection := roomRepository.client.Database("chat").Collection("rooms")
+	data := map[string]interface{}{"id": id}
+	var room Room
+	err := collection.FindOne(context.Background(), data).Decode(&room)
+	if err != nil {
 		return nil
 	}
-
-	return room
+	return &room
 }
 
 func (roomRepository *RoomRepository) FindRoomsByUserId(ctx context.Context, userId int) []*Room {
@@ -47,9 +45,6 @@ func (roomRepository *RoomRepository) FindRoomsByUserId(ctx context.Context, use
 		}
 		rooms = append(rooms, &room)
 	}
-
-	//rooms = append(rooms, NewRoom(1, "Room 1", "group", []int{1, 2, 3}))
-	//rooms = append(rooms, NewRoom(2, "Room 2", "group", []int{1, 4, 5}))
 
 	return rooms
 }

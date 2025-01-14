@@ -25,17 +25,22 @@ type UserConnectMessageWs struct {
 	}
 }
 
-type Room struct {
+type User struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
-	Type string `json:"type"`
+}
+type Room struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Users []User `json:"users"`
 }
 type UserConnectMessageResponseWs struct {
 	Type    string `json:"type"`
 	Payload struct {
 		Success bool   `json:"success"`
 		Rooms   []Room `json:"rooms"`
-	}
+	} `json:"payload"`
 }
 
 type UserJoinToRoomMessageWs struct {
@@ -47,12 +52,22 @@ type UserJoinToRoomMessageWs struct {
 	} `json:"payload"`
 }
 
+type Message struct {
+	ID          int    `json:"id"`
+	RoomID      int    `json:"roomID"`
+	CreatorID   int    `json:"creatorID"`
+	CreatorName string `json:"creatorName"`
+	ReceiverID  int    `json:"receiverID"`
+	Text        string `json:"text"`
+	CreatedAt   string `json:"createdAt"`
+}
 type UserJoinToRoomMessageResponseWs struct {
 	Type    string `json:"type"`
 	Payload struct {
-		Success  bool   `json:"success"`
-		RoomID   int    `json:"roomID"`
-		RoomName string `json:"roomName"`
-		Msg      string `json:"msg"`
+		Success  bool      `json:"success"`
+		RoomID   int       `json:"roomID"`
+		RoomName string    `json:"roomName"`
+		Users    []User    `json:"users"`
+		Messages []Message `json:"messages"`
 	}
 }

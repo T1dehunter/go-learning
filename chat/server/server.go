@@ -52,7 +52,7 @@ func (server *Server) Start() {
 	})
 
 	server.websocket.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserJoinToRoom(message, ws, server.userService, server.roomService)
+		handlers.HandleUserJoinToRoom(message, ws, server.userService, server.roomService, server.messageService)
 	})
 
 	server.websocket.SubscribeOnUserLeaveRoom(func(message weboscket.UserLeaveRoomMessage, ws weboscket.WebsocketSender) {

@@ -3,19 +3,23 @@ package room
 import (
 	"chat/client/console/events"
 	"chat/client/console/symbols"
-	"chat/client/console/types"
 	"fmt"
-	"time"
 )
 
-type UserData struct {
-	ID    int
-	Name  string
-	Rooms []types.UserRoom
+const (
+	chooseCommand = "CHOOSE_COMMAND"
+	enterMessage  = "ENTER_MESSAGE"
+)
+
+type Data struct {
+	UserID   int
+	RoomID   int
+	RoomName string
 }
 
 type RoomScreen struct {
-	roomName        string
+	state           string
+	data            Data
 	renderCh        chan string
 	inputTextCh     chan string
 	userActionCh    chan interface{}
@@ -31,6 +35,7 @@ func NewRoomScreen(
 ) *RoomScreen {
 	exitChan := make(chan interface{})
 	return &RoomScreen{
+		state:           chooseCommand,
 		renderCh:        renderCh,
 		inputTextCh:     inputTextCh,
 		userActionCh:    userActionCh,
@@ -39,82 +44,67 @@ func NewRoomScreen(
 	}
 }
 
-func (screen *RoomScreen) SetScreenData(roomName string) {
-	screen.roomName = roomName
+func (screen *RoomScreen) SetScreenData(data Data) {
+	screen.data = data
 }
 
 func (screen *RoomScreen) Render() {
-	//screen.printInitialMessage()
-	//
-	//screen.listenInput()
-	//screen.listenUserActionResult()
 	screen.renderContent()
-	fmt.Println("Room screen render", screen.roomName)
+	screen.listenUserInput()
+	screen.listenUserActionResult()
 }
 
 func (screen *RoomScreen) renderContent() {
 	const template = `
 ==========================================================================================================
-                            Welcome to room: %s
+                            %s
 ==========================================================================================================
  Commands:
  [1] Send Message
- [2] View Active Users
- [3] Leave Room
+ [2] Leave Room
 
 ----------------------------------
  Type a command number to proceed.
 `
-	// slow render by character
-	currTittle := ""
-	screenText := ""
-	for idx := range screen.roomName {
-		currTittle = screen.roomName[:idx+1]
-		screenText = fmt.Sprintf(template, currTittle)
-		screen.renderCh <- screenText
-		time.Sleep(50 * time.Millisecond)
-	}
-	screenText += symbols.Prompt
-	screen.renderCh <- screenText
-
+	fmt.Println("data ::: ", screen.data)
+	//
+	//const titleTemplate = "Room: #%s"
+	//titleText := fmt.Sprintf(titleTemplate, screen.data.roomName)
+	//// slow render by character
+	//currTittle := ""
+	//screenText := ""
+	//for idx := range titleText {
+	//	currTittle = titleText[:idx+1]
+	//	screenText = fmt.Sprintf(template, currTittle)
+	//	screen.renderCh <- screenText
+	//	time.Sleep(50 * time.Millisecond)
+	//}
+	//screenText += symbols.Prompt
+	//screen.renderCh <- screenText
 }
 
 func (screen *RoomScreen) Exit() {
 	close(screen.exitCh)
 }
 
-func (screen *RoomScreen) getLogo() string {
-	const AUTH_TEXT = `
-==========================================================================================================
-                                AUTHORIZATION REQUIRED
-==========================================================================================================
-`
-	return AUTH_TEXT
+func (screen *RoomScreen) setState(nextState string) {
+	screen.state = nextState
 }
 
-func (screen *RoomScreen) getAskEnterUserName() string {
-	return "Enter your username:"
-}
-
-func (screen *RoomScreen) printAskEnterPassword() {
-	fmt.Println("Enter your password:")
-	fmt.Print(symbols.Prompt)
-}
-
-func (screen *RoomScreen) listenInput() {
+func (screen *RoomScreen) listenUserInput() {
 	go func() {
-		userName := ""
-		password := ""
 		for {
 			select {
 			case text := <-screen.inputTextCh:
-				if userName == "" {
-					userName = text
-					screen.printAskEnterPassword()
-				} else if userName != "" && password == "" {
-					password = text
-
-					event := events.UserAuthRequest{Username: userName, Password: password}
+				if screen.state == chooseCommand && text == "1" {
+					screen.printAskEnterMessage()
+					screen.setState(enterMessage)
+				} else if screen.state == chooseCommand && text == "2" {
+					event := events.UserRoomExit{}
+					screen.userActionCh <- event
+				} else if screen.state == enterMessage && text != "" {
+					fmt.Println("room screen send msg: ", text)
+					event := events.UserSendMessage{Message: text}
 					screen.userActionCh <- event
 				}
 
@@ -124,6 +114,11 @@ func (screen *RoomScreen) listenInput() {
 		}
 
 	}()
+}
+
+func (screen *RoomScreen) printAskEnterMessage() {
+	fmt.Println("Enter your message:")
+	fmt.Print(symbols.Prompt)
 }
 
 func (screen *RoomScreen) listenUserActionResult() {

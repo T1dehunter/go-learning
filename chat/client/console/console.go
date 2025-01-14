@@ -132,7 +132,7 @@ func (console *Console) DisplayAuthScreen() {
 	console.currentScreen.Render()
 }
 
-func (console *Console) DisplayListRoomsScreen(userID int, userName string, userRooms []types.UserRoom) {
+func (console *Console) DisplayListRoomsScreen(userID int, userName string, userRooms []types.Room) {
 	console.currentScreen.Exit()
 
 	console.listRoomsScreen.SetUserData(userID, userName, userRooms)
@@ -141,9 +141,10 @@ func (console *Console) DisplayListRoomsScreen(userID int, userName string, user
 	console.currentScreen.Render()
 }
 
-func (console *Console) DisplayRoomScreen(userID int, userName string, roomID int, roomName string) {
+func (console *Console) DisplayRoomScreen(userID int, userName string, roomID int, roomName string, users []types.User, messages []types.Message) {
+	//fmt.Println("DisplayRoomScreen::: ", userID, userName, roomID, roomName, users, messages)
 	console.currentScreen.Exit()
-	console.roomScreen.SetScreenData(roomName)
+	console.roomScreen.SetScreenData(room.Data{UserID: userID, RoomID: roomID, RoomName: roomName})
 	console.currentScreen = console.roomScreen
 	console.currentScreen.Render()
 }

@@ -14,7 +14,7 @@ func NewMessageRepository(client *mongo.Client) *MessageRepository {
 }
 
 func (messageRepository *MessageRepository) FindMessagesByRoomID(ctx context.Context, roomID int) []*Message {
-	collection := messageRepository.client.Database("chat").Collection("events")
+	collection := messageRepository.client.Database("chat").Collection("messages")
 	cursor, err := collection.Find(ctx, map[string]interface{}{"roomID": roomID})
 	if err != nil {
 		panic(err)
@@ -45,6 +45,7 @@ func (messageRepository *MessageRepository) AddMessage(ctx context.Context, mess
 		"receiverID": message.ReceiverID,
 		"roomID":     message.RoomID,
 		"text":       message.Text,
+		"createdAt":  message.CreatedAt,
 	}
 	_, err := collection.InsertOne(ctx, data)
 	if err != nil {

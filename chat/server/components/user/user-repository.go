@@ -35,6 +35,30 @@ func (userRepository *UserRepository) FindUserById(ctx context.Context, id int) 
 	return nil
 }
 
+func (userRepository *UserRepository) FindAllUsersByIds(ctx context.Context, ids []int) []*User {
+	var result UserSchema
+	filter := bson.D{{"id", bson.D{{"$in", ids}}}}
+	collection := userRepository.client.Database("chat").Collection("users")
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		panic(err)
+	}
+	defer cursor.Close(ctx)
+
+	users := make([]*User, 0)
+	for cursor.Next(ctx) {
+		err := cursor.Decode(&result)
+		if err != nil {
+			panic(err)
+		}
+		users = append(users, mapSchemaToUser(&result))
+	}
+
+	fmt.Println("users", users)
+
+	return users
+}
+
 func (userRepository *UserRepository) FindUserByAccessToken(ctx context.Context, accessToken string) *User {
 	var result UserSchema
 	// TEMP: for testing purposes, we are using the password field as the access token

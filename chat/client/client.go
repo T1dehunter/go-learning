@@ -78,7 +78,6 @@ func (client *Client) customizeState(console *console.Console) {
 
 func (client *Client) listenUserActions(userActionCh chan interface{}, userActionResCh chan interface{}, consl *console.Console) {
 	for userMessage := range userActionCh {
-		fmt.Println("User message again: ", userMessage)
 		switch msg := userMessage.(type) {
 
 		case events.UserChatConfirmed:
@@ -87,6 +86,8 @@ func (client *Client) listenUserActions(userActionCh chan interface{}, userActio
 			client.handleAuthUser(msg, consl, userActionResCh)
 		case events.UserJoinRoom:
 			client.handleUserJoinRoom(msg, consl)
+		case events.UserSendMessage:
+			fmt.Println("User send message", msg)
 		case events.UserChatExit:
 			client.handleExitUser(msg, consl)
 		default:
@@ -134,10 +135,27 @@ func (client *Client) handleUserJoinRoom(event events.UserJoinRoom, console *con
 	}
 
 	res := client.websocket.SendUserJoinRoomMessage(client.user.ID, event.RoomID, client.user.AccessToken)
-	fmt.Println("User join room res::: ", res.Type)
-	fmt.Println("User join room res::: ", res.Payload)
+
+	var roomUsers []consoleTypes.User
+	for _, user := range res.Payload.Users {
+		roomUsers = append(roomUsers, consoleTypes.User{ID: user.ID, Name: user.Name})
+	}
+
+	var roomMessages []consoleTypes.Message
+	for _, msg := range res.Payload.Messages {
+		message := consoleTypes.Message{
+			ID:          msg.ID,
+			RoomID:      msg.RoomID,
+			CreatorID:   msg.CreatorID,
+			CreatorName: msg.CreatorName,
+			Text:        msg.Text,
+			CreatedAt:   msg.CreatedAt,
+		}
+		roomMessages = append(roomMessages, message)
+	}
+
 	client.setState(stateUserJoinedToRoom)
-	console.DisplayRoomScreen(client.user.ID, client.user.Name, res.Payload.RoomID, res.Payload.RoomName)
+	console.DisplayRoomScreen(client.user.ID, client.user.Name, res.Payload.RoomID, res.Payload.RoomName, roomUsers, roomMessages)
 }
 
 func (client *Client) handleExitUser(event events.UserChatExit, console *console.Console) {
@@ -164,14 +182,18 @@ func (client *Client) authenticateUser(name string, password string, userActionR
 	return user
 }
 
-func (client *Client) connectUser(user *AuthenticatedUser) []consoleTypes.UserRoom {
-	var userRooms []consoleTypes.UserRoom
+func (client *Client) connectUser(user *AuthenticatedUser) []consoleTypes.Room {
+	var userRooms []consoleTypes.Room
 	response := client.websocket.SendUserConnectMessage(user.ID, user.AccessToken)
 	if response == nil || response.Type != "user_connected" {
 		return userRooms
 	}
 	for _, responseRoom := range response.Payload.Rooms {
-		userRooms = append(userRooms, consoleTypes.UserRoom{ID: responseRoom.ID, Name: responseRoom.Name, Type: responseRoom.Type})
+		users := make([]consoleTypes.User, 0)
+		for _, responseUser := range responseRoom.Users {
+			users = append(users, consoleTypes.User{ID: responseUser.ID, Name: responseUser.Name})
+		}
+		userRooms = append(userRooms, consoleTypes.Room{ID: responseRoom.ID, Name: responseRoom.Name, Type: responseRoom.Type, Users: users})
 	}
 	return userRooms
 }

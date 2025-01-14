@@ -9,10 +9,15 @@ type UserAuthenticatedMsg struct {
 	} `json:"payload"`
 }
 
-type UserRoom struct {
+type UserData struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
-	Type string `json:"type"`
+}
+type UserRoom struct {
+	ID    int        `json:"id"`
+	Name  string     `json:"name"`
+	Type  string     `json:"type"`
+	Users []UserData `json:"users"`
 }
 
 type UserConnectedMsg struct {
@@ -23,12 +28,22 @@ type UserConnectedMsg struct {
 	} `json:"payload"`
 }
 
+type Message struct {
+	ID          int    `json:"id"`
+	RoomID      int    `json:"roomID"`
+	CreatorID   int    `json:"CreatorID"`
+	CreatorName string `json:"CreatorName"`
+	ReceiverID  int    `json:"receiverID"`
+	Text        string `json:"text"`
+	CreatedAt   string `json:"createdAt"`
+}
 type UserJoinedToRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
-		Success  bool   `json:"success"`
-		RoomID   int    `json:"roomID"`
-		RoomName string `json:"roomName"`
-		Msg      string `json:"msg"`
+		Success  bool       `json:"success"`
+		RoomID   int        `json:"roomID"`
+		RoomName string     `json:"roomName"`
+		Users    []UserData `json:"users"`
+		Messages []Message  `json:"messages"`
 	} `json:"payload"`
 }
