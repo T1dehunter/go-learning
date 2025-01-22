@@ -3,7 +3,10 @@ package room
 import (
 	"chat/client/console/events"
 	"chat/client/console/symbols"
+	"chat/client/console/types"
 	"fmt"
+	"strings"
+	"time"
 )
 
 const (
@@ -15,6 +18,8 @@ type Data struct {
 	UserID   int
 	RoomID   int
 	RoomName string
+	Users    []types.User
+	Messages []types.Message
 }
 
 type RoomScreen struct {
@@ -57,30 +62,58 @@ func (screen *RoomScreen) Render() {
 func (screen *RoomScreen) renderContent() {
 	const template = `
 ==========================================================================================================
-                            %s
+  %s
 ==========================================================================================================
- Commands:
- [1] Send Message
- [2] Leave Room
-
-----------------------------------
- Type a command number to proceed.
 `
-	fmt.Println("data ::: ", screen.data)
-	//
-	//const titleTemplate = "Room: #%s"
-	//titleText := fmt.Sprintf(titleTemplate, screen.data.roomName)
-	//// slow render by character
-	//currTittle := ""
-	//screenText := ""
-	//for idx := range titleText {
-	//	currTittle = titleText[:idx+1]
-	//	screenText = fmt.Sprintf(template, currTittle)
-	//	screen.renderCh <- screenText
-	//	time.Sleep(50 * time.Millisecond)
-	//}
-	//screenText += symbols.Prompt
-	//screen.renderCh <- screenText
+	//fmt.Printf("%+v\n", screen.data)
+	titleText := screen.getTitleText()
+	currTittle := ""
+	screenText := ""
+	for idx := range titleText {
+		currTittle = titleText[:idx+1]
+		if currTittle == "" {
+			continue
+		}
+		screenText = fmt.Sprintf(template, currTittle)
+		screen.renderCh <- screenText
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	messagesText := screen.getMessagesText()
+
+	screenText += messagesText
+
+	screenText += `
+----------------------------------------------------------------------------------------------------------
+Commands:
+[1] Type your message
+[2] Exit Room
+----------------------------------------------------------------------------------------------------------
+`
+
+	screenText += symbols.Prompt
+
+	screen.renderCh <- screenText
+}
+
+func (screen *RoomScreen) getTitleText() string {
+	var usersNames []string
+	for _, user := range screen.data.Users {
+		usersNames = append(usersNames, "@"+user.Name)
+	}
+	formattedNames := strings.Join(usersNames, ", ")
+	const titleTemplate = "Room: #{roomName}, Users: {usersNames}"
+	replacer := strings.NewReplacer("{roomName}", screen.data.RoomName, "{usersNames}", formattedNames)
+	titleText := replacer.Replace(titleTemplate)
+	return titleText
+}
+
+func (screen *RoomScreen) getMessagesText() string {
+	var messagesText string
+	for _, message := range screen.data.Messages {
+		messagesText += fmt.Sprintf("User: @%s [%s]: %s\n", message.CreatorName, message.CreatedAt, message.Text)
+	}
+	return messagesText
 }
 
 func (screen *RoomScreen) Exit() {
@@ -103,8 +136,8 @@ func (screen *RoomScreen) listenUserInput() {
 					event := events.UserRoomExit{}
 					screen.userActionCh <- event
 				} else if screen.state == enterMessage && text != "" {
-					fmt.Println("room screen send msg: ", text)
-					event := events.UserSendMessage{Message: text}
+					//fmt.Println("room screen send msg: ", text)
+					event := events.UserSendRoomMessage{RoomID: screen.data.RoomID, Message: text}
 					screen.userActionCh <- event
 				}
 

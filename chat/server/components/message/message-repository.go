@@ -21,24 +21,25 @@ func (messageRepository *MessageRepository) FindMessagesByRoomID(ctx context.Con
 	}
 	defer cursor.Close(ctx)
 
-	messages := []*Message{}
+	var messages []*Message
 	for cursor.Next(ctx) {
 		var msg Message
 		err := cursor.Decode(&msg)
 		if err != nil {
 			panic(err)
 		}
-		messages = append(messages, NewMessage(msg.Id, msg.Text, msg.CreatorID, msg.ReceiverID, msg.RoomID))
+		newMessage := NewMessage(msg.Id, msg.Text, msg.CreatorID, msg.ReceiverID, msg.RoomID, msg.CreatedAt)
+		messages = append(messages, newMessage)
 	}
 	return messages
 }
 
 func (messageRepository *MessageRepository) DeleteAllMessages(ctx context.Context) {
-	messageRepository.client.Database("chat").Collection("events").Drop(ctx)
+	messageRepository.client.Database("chat").Collection("messages").Drop(ctx)
 }
 
 func (messageRepository *MessageRepository) AddMessage(ctx context.Context, message *Message) {
-	collection := messageRepository.client.Database("chat").Collection("events")
+	collection := messageRepository.client.Database("chat").Collection("messages")
 	data := map[string]interface{}{
 		"id":         message.Id,
 		"creatorID":  message.CreatorID,

@@ -10,12 +10,13 @@ import (
 )
 
 const (
-	stateUserWelcome       = "USER_WELCOME"
-	stateUserAuthProcess   = "USER_AUTH_PROCESS"
-	stateUserAuthenticated = "USER_AUTHENTICATED"
-	stateUserConnected     = "USER_CONNECTED"
-	stateUserJoinedToRoom  = "USER_JOINED_TO_ROOM"
-	stateUserExit          = "USER_EXIT"
+	stateUserWelcome         = "USER_WELCOME"
+	stateUserAuthProcess     = "USER_AUTH_PROCESS"
+	stateUserAuthenticated   = "USER_AUTHENTICATED"
+	stateUserConnected       = "USER_CONNECTED"
+	stateUserJoinedToRoom    = "USER_JOINED_TO_ROOM"
+	stateUserSendRoomMessage = "USER_SEND_ROOM_MESSAGE"
+	stateUserExit            = "USER_EXIT"
 )
 
 type AuthenticatedUser struct {
@@ -86,8 +87,9 @@ func (client *Client) listenUserActions(userActionCh chan interface{}, userActio
 			client.handleAuthUser(msg, consl, userActionResCh)
 		case events.UserJoinRoom:
 			client.handleUserJoinRoom(msg, consl)
-		case events.UserSendMessage:
-			fmt.Println("User send message", msg)
+		case events.UserSendRoomMessage:
+			//fmt.Println("User send message!!!", msg)
+			client.handleUserSendRoomMessage(msg, consl)
 		case events.UserChatExit:
 			client.handleExitUser(msg, consl)
 		default:
@@ -144,18 +146,61 @@ func (client *Client) handleUserJoinRoom(event events.UserJoinRoom, console *con
 	var roomMessages []consoleTypes.Message
 	for _, msg := range res.Payload.Messages {
 		message := consoleTypes.Message{
-			ID:          msg.ID,
-			RoomID:      msg.RoomID,
-			CreatorID:   msg.CreatorID,
-			CreatorName: msg.CreatorName,
-			Text:        msg.Text,
-			CreatedAt:   msg.CreatedAt,
+			ID:           msg.ID,
+			RoomID:       msg.RoomID,
+			CreatorID:    msg.CreatorID,
+			CreatorName:  msg.CreatorName,
+			ReceiverID:   msg.ReceiverID,
+			ReceiverName: msg.ReceiverName,
+			Text:         msg.Text,
+			CreatedAt:    msg.CreatedAt,
 		}
 		roomMessages = append(roomMessages, message)
 	}
 
 	client.setState(stateUserJoinedToRoom)
 	console.DisplayRoomScreen(client.user.ID, client.user.Name, res.Payload.RoomID, res.Payload.RoomName, roomUsers, roomMessages)
+}
+
+func (client *Client) handleUserSendRoomMessage(event events.UserSendRoomMessage, console *console.Console) {
+	if !client.isUserJoinedToRoomState() {
+		return
+	}
+
+	res := client.websocket.SendRoomMessage(client.user.ID, event.RoomID, event.Message, client.user.AccessToken)
+
+	var roomUsers []consoleTypes.User
+	for _, user := range res.Payload.Users {
+		roomUsers = append(roomUsers, consoleTypes.User{ID: user.ID, Name: user.Name})
+	}
+
+	var roomMessages []consoleTypes.Message
+	for _, msg := range res.Payload.Messages {
+		message := consoleTypes.Message{
+			ID:           msg.ID,
+			RoomID:       msg.RoomID,
+			CreatorID:    msg.CreatorID,
+			CreatorName:  msg.CreatorName,
+			ReceiverID:   msg.ReceiverID,
+			ReceiverName: msg.ReceiverName,
+			Text:         msg.Text,
+			CreatedAt:    msg.CreatedAt,
+		}
+		roomMessages = append(roomMessages, message)
+	}
+
+	//client.setState(stateUserSendRoomMessage)
+
+	fmt.Println("User send message!!!###", event.Message)
+
+	console.DisplayRoomScreen(
+		client.user.ID,
+		client.user.Name,
+		res.Payload.RoomID,
+		res.Payload.RoomName,
+		roomUsers,
+		roomMessages,
+	)
 }
 
 func (client *Client) handleExitUser(event events.UserChatExit, console *console.Console) {

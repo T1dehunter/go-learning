@@ -55,6 +55,14 @@ func (server *Server) Start() {
 		handlers.HandleUserJoinToRoom(message, ws, server.userService, server.roomService, server.messageService)
 	})
 
+	server.websocket.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserJoinToRoom(message, ws, server.userService, server.roomService, server.messageService)
+	})
+
+	server.websocket.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender) {
+		handlers.HandleUserSendRoomMessage(message, ws, server.userService, server.roomService, server.messageService)
+	})
+
 	server.websocket.SubscribeOnUserLeaveRoom(func(message weboscket.UserLeaveRoomMessage, ws weboscket.WebsocketSender) {
 		handlers.HandleUserLeaveRoom(message, ws, server.userService, server.roomService)
 	})
@@ -65,11 +73,6 @@ func (server *Server) Start() {
 
 	server.websocket.SubscribeOnGetRoomMessages(func(message weboscket.UserGetRoomMessages, ws weboscket.WebsocketSender) {
 		handlers.HandleGetRoomMessages(message, ws, server.userService, server.roomService, server.messageService)
-	})
-
-	// test handler
-	server.websocket.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserSendRoomMessage(message, ws, server.userService, server.roomService)
 	})
 
 	log.Println("Server started!")

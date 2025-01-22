@@ -35,11 +35,12 @@ type MessageJson struct {
 	ReceiverID int    `json:"receiverID"`
 	RoomID     int    `json:"roomID"`
 	Text       string `json:"text"`
+	CreatedAt  string `json:"createdAt"`
 }
 
 const pathToUsersJson = "server/jobs/seed-data/data/users.json"
 const pathToRoomsJson = "server/jobs/seed-data/data/rooms.json"
-const pathToMessagesJson = "server/jobs/seed-data/data/events.json"
+const pathToMessagesJson = "server/jobs/seed-data/data/messages.json"
 
 func Seed() {
 	fmt.Println("Start seeding data...")
@@ -104,9 +105,9 @@ func readRooms() []room.Room {
 func seedMessages(ctx context.Context, client *mongo.Client) {
 	messageRepository := message.NewMessageRepository(client)
 	messages := readMessages()
-	fmt.Println("Deleting current events...")
+	fmt.Println("Deleting current messages...")
 	messageRepository.DeleteAllMessages(ctx)
-	fmt.Println("Adding new events...")
+	fmt.Println("Adding new messages...")
 	for _, message := range messages {
 		messageRepository.AddMessage(ctx, &message)
 	}
@@ -120,7 +121,14 @@ func readMessages() []message.Message {
 	var messageEntities []message.Message
 
 	for _, messageJson := range messages {
-		message := message.NewMessage(messageJson.Id, messageJson.Text, messageJson.CreatorID, messageJson.ReceiverID, messageJson.RoomID)
+		message := message.NewMessage(
+			messageJson.Id,
+			messageJson.Text,
+			messageJson.CreatorID,
+			messageJson.ReceiverID,
+			messageJson.RoomID,
+			messageJson.CreatedAt,
+		)
 		messageEntities = append(messageEntities, *message)
 	}
 

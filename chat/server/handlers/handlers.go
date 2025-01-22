@@ -169,14 +169,12 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	defer cancel()
 
 	user := userService.FindUserById(ctx, message.Payload.UserID)
-
 	if user == nil {
 		log.Println("Error joining to room: user not found")
 		return
 	}
 
 	room := roomService.FindRoomById(message.Payload.RoomID)
-
 	if room == nil {
 		log.Println("Error joining to room: room not found")
 		return
@@ -188,6 +186,7 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 	ws.AddUserToNamespace(roomName)
 
 	roomMessages := messageService.FindRoomMessages(ctx, room.Id)
+	fmt.Printf("MESSAGESSSS %+v\n", roomMessages[0])
 
 	roomUsers := userService.FindAllUsersByIds(ctx, room.UserIds)
 	var roomUsersData []response.UserData
@@ -200,13 +199,35 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 
 	var roomMessagesData []response.Message
 	for _, message := range roomMessages {
+		var creatorUser response.UserData
+		for _, user := range roomUsersData {
+			if user.ID == message.CreatorID {
+				creatorUser = response.UserData{
+					ID:   user.ID,
+					Name: user.Name,
+				}
+			}
+		}
+
+		var receiverUser response.UserData
+		for _, user := range roomUsersData {
+			if user.ID == message.ReceiverID {
+				receiverUser = response.UserData{
+					ID:   user.ID,
+					Name: user.Name,
+				}
+			}
+		}
+
 		roomMessagesData = append(roomMessagesData, response.Message{
-			ID:         message.Id,
-			CreatorID:  message.CreatorID,
-			ReceiverID: message.ReceiverID,
-			RoomID:     message.RoomID,
-			Text:       message.Text,
-			CreatedAt:  message.CreatedAt,
+			ID:           message.Id,
+			CreatorID:    message.CreatorID,
+			CreatorName:  creatorUser.Name,
+			ReceiverID:   message.ReceiverID,
+			ReceiverName: receiverUser.Name,
+			RoomID:       message.RoomID,
+			Text:         message.Text,
+			CreatedAt:    message.CreatedAt,
 		})
 	}
 
@@ -221,6 +242,109 @@ func HandleUserJoinToRoom(message weboscket.UserJoinToRoomMessage, ws weboscket.
 
 	res := response.UserJoinedToRoomMsg{
 		Type: "user_joined_to_room",
+		Payload: struct {
+			Success  bool                `json:"success"`
+			RoomID   int                 `json:"roomID"`
+			RoomName string              `json:"roomName"`
+			Users    []response.UserData `json:"users"`
+			Messages []response.Message  `json:"messages"`
+		}{
+			Success:  true,
+			RoomID:   room.Id,
+			RoomName: room.Name,
+			Users:    roomUsersData,
+			Messages: roomMessagesData,
+		},
+	}
+	resMsg, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println("Error converting response to JSON:", err)
+		return
+	}
+	ws.SendMessageToUser(user.Id, string(resMsg))
+}
+
+func HandleUserSendRoomMessage(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService, messageService *message.MessageService) {
+	fmt.Printf("Handler HandleUserSendRoomMessage received message -> %+v\n", message)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	defer cancel()
+
+	user := userService.FindUserById(ctx, message.Payload.UserID)
+	if user == nil {
+		log.Println("Error joining to room: user not found")
+		return
+	}
+
+	room := roomService.FindRoomById(message.Payload.RoomID)
+	if room == nil {
+		log.Println("Error joining to room: room not found")
+		return
+	}
+
+	currentTime := time.Now().UTC()
+	createdAt := currentTime.Format("2006-01-02T15:04:05.000Z")
+	newMsg := messageService.CreateMessage(message.Payload.Message, user.Id, user.Id, room.Id, createdAt)
+	messageService.SaveMessage(newMsg)
+
+	roomMessages := messageService.FindRoomMessages(ctx, room.Id)
+	fmt.Printf("MESSAGESSSS %+v\n", roomMessages[0])
+
+	roomUsers := userService.FindAllUsersByIds(ctx, room.UserIds)
+	var roomUsersData []response.UserData
+	for _, user := range roomUsers {
+		roomUsersData = append(roomUsersData, response.UserData{
+			ID:   user.Id,
+			Name: user.Name,
+		})
+	}
+
+	var roomMessagesData []response.Message
+	for _, message := range roomMessages {
+		var creatorUser response.UserData
+		for _, user := range roomUsersData {
+			if user.ID == message.CreatorID {
+				creatorUser = response.UserData{
+					ID:   user.ID,
+					Name: user.Name,
+				}
+			}
+		}
+
+		var receiverUser response.UserData
+		for _, user := range roomUsersData {
+			if user.ID == message.ReceiverID {
+				receiverUser = response.UserData{
+					ID:   user.ID,
+					Name: user.Name,
+				}
+			}
+		}
+
+		roomMessagesData = append(roomMessagesData, response.Message{
+			ID:           message.Id,
+			CreatorID:    message.CreatorID,
+			CreatorName:  creatorUser.Name,
+			ReceiverID:   message.ReceiverID,
+			ReceiverName: receiverUser.Name,
+			RoomID:       message.RoomID,
+			Text:         message.Text,
+			CreatedAt:    message.CreatedAt,
+		})
+	}
+
+	log.Println("User joined to room")
+
+	time.Sleep(2 * time.Second)
+
+	userName := fmt.Sprintf("Dear user %s", user.Name)
+	userMsg := fmt.Sprintf("%s you are joined to room %s", userName, room.Name)
+
+	fmt.Println("userMsg", userMsg)
+
+	res := response.UserSendRoomMsg{
+		Type: "user_send_room_message",
 		Payload: struct {
 			Success  bool                `json:"success"`
 			RoomID   int                 `json:"roomID"`
@@ -308,7 +432,14 @@ func HandleUserSendDirectMessage(message weboscket.UserSendDirectMessage, ws web
 		return
 	}
 
-	newMessage := messageService.CreateMessage(message.Payload.Message, user.Id, receiver.Id, room.Id)
+	now := time.Now()
+	newMessage := messageService.CreateMessage(
+		message.Payload.Message,
+		user.Id,
+		receiver.Id,
+		room.Id,
+		now.String(),
+	)
 
 	messageService.SaveMessage(newMessage)
 
@@ -319,36 +450,6 @@ func HandleUserSendDirectMessage(message weboscket.UserSendDirectMessage, ws web
 	jsonMessage, _ := json.Marshal(newMessage)
 
 	ws.SendMessageToUser(receiver.Id, string(jsonMessage))
-}
-
-func HandleUserSendRoomMessage(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService) {
-	fmt.Printf("Handler HandleUserSendRoomMessage received message -> %+v\n", message)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-	defer cancel()
-
-	user := userService.FindUserById(ctx, message.Payload.UserID)
-
-	if user == nil {
-		log.Println("Error sending room message: user not found")
-		return
-	}
-
-	room := roomService.FindRoomById(message.Payload.RoomID)
-
-	if room == nil {
-		log.Println("Error sending room message: room not found")
-		return
-	}
-
-	log.Println("User sent message to room")
-
-	time.Sleep(2 * time.Second)
-
-	roomName := fmt.Sprintf("room_%d", room.Id)
-
-	ws.SendMessageToNamespace(roomName, message.Payload.Message)
 }
 
 func HandleGetRoomMessages(message weboscket.UserGetRoomMessages, ws weboscket.WebsocketSender, userService *user.UserService, roomService *room.RoomService, messageService *message.MessageService) {

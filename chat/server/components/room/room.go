@@ -26,6 +26,10 @@ func (room *Room) JoinUser(userId int) {
 	room.UserIds = append(room.UserIds, userId)
 }
 
+func (room *Room) AddMessage(userId int, text string) {
+
+}
+
 func (room *Room) leaveUser(userId int) {
 	for userIdx, userID := range room.UserIds {
 		if userID == userId {

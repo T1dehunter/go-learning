@@ -13,11 +13,12 @@ type Room struct {
 }
 
 type Message struct {
-	ID          int
-	RoomID      int
-	CreatorID   int
-	CreatorName string
-	ReceiverID  int
-	Text        string
-	CreatedAt   string
+	ID           int
+	RoomID       int
+	CreatorID    int
+	CreatorName  string
+	ReceiverID   int
+	ReceiverName string
+	Text         string
+	CreatedAt    string
 }

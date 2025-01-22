@@ -38,7 +38,7 @@ type UserJoinRoom struct {
 	RoomID int
 }
 
-type UserSendMessage struct {
+type UserSendRoomMessage struct {
 	RoomID  int
 	Message string
 }

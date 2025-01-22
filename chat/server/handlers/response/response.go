@@ -29,15 +29,27 @@ type UserConnectedMsg struct {
 }
 
 type Message struct {
-	ID          int    `json:"id"`
-	RoomID      int    `json:"roomID"`
-	CreatorID   int    `json:"CreatorID"`
-	CreatorName string `json:"CreatorName"`
-	ReceiverID  int    `json:"receiverID"`
-	Text        string `json:"text"`
-	CreatedAt   string `json:"createdAt"`
+	ID           int    `json:"id"`
+	RoomID       int    `json:"roomID"`
+	CreatorID    int    `json:"creatorID"`
+	CreatorName  string `json:"creatorName"`
+	ReceiverID   int    `json:"receiverID"`
+	ReceiverName string `json:"receiverName"`
+	Text         string `json:"text"`
+	CreatedAt    string `json:"createdAt"`
 }
 type UserJoinedToRoomMsg struct {
+	Type    string `json:"type"`
+	Payload struct {
+		Success  bool       `json:"success"`
+		RoomID   int        `json:"roomID"`
+		RoomName string     `json:"roomName"`
+		Users    []UserData `json:"users"`
+		Messages []Message  `json:"messages"`
+	} `json:"payload"`
+}
+
+type UserSendRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		Success  bool       `json:"success"`

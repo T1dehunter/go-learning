@@ -33,6 +33,15 @@ type UserJoinToRoomMessage struct {
 	} `json:"payload"`
 }
 
+type UserSendRoomMessage struct {
+	Type    string `json:"type"`
+	Payload struct {
+		UserID  int    `json:"userID"`
+		RoomID  int    `json:"roomID"`
+		Message string `json:"message"`
+	} `json:"payload"`
+}
+
 type UserLeaveRoomMessage struct {
 	Type    string `json:"type"`
 	Payload struct {
@@ -48,15 +57,6 @@ type UserSendDirectMessage struct {
 		ReceiverID int    `json:"receiverID"`
 		RoomID     int    `json:"roomID"`
 		Message    string `json:"message"`
-	} `json:"payload"`
-}
-
-type UserSendRoomMessage struct {
-	Type    string `json:"type"`
-	Payload struct {
-		UserID  int    `json:"userID"`
-		RoomID  int    `json:"roomID"`
-		Message string `json:"message"`
 	} `json:"payload"`
 }
 

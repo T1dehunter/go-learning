@@ -52,6 +52,7 @@ func (ws *Websocket) Connect() {
 			if err != nil {
 				log.Println("Error reading from WebSocket:", err)
 				ws.dataChannel <- "Error reading from WebSocket"
+				//ws.reConnect()
 			} else {
 				ws.dataChannel <- string(response)
 			}
@@ -170,6 +171,41 @@ func (ws *Websocket) SendUserJoinRoomMessage(userID int, roomID int, accessToken
 			panic(err)
 		}
 		if response.Type == "user_joined_to_room" {
+			break
+		}
+	}
+	return &response
+}
+
+func (ws *Websocket) SendRoomMessage(userID int, roomID int, text string, accessToken string) *types.UserSendRoomMessageResponseWs {
+	message := types.UserSendRoomMessageWs{
+		Type: "user_send_room_message",
+		Payload: struct {
+			UserID      int    `json:"userID"`
+			RoomID      int    `json:"roomID"`
+			Message     string `json:"message"`
+			AccessToken string `json:"accessToken"`
+		}{
+			UserID:      userID,
+			RoomID:      roomID,
+			Message:     text,
+			AccessToken: accessToken,
+		},
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
+	}
+	ws.SendMessage(messageJson)
+
+	var response types.UserSendRoomMessageResponseWs
+	for wsMessage := range ws.dataChannel {
+		err := json.Unmarshal([]byte(wsMessage), &response)
+		if err != nil {
+			panic(err)
+		}
+		if response.Type == "user_send_room_message" {
 			break
 		}
 	}

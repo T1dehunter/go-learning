@@ -53,15 +53,37 @@ type UserJoinToRoomMessageWs struct {
 }
 
 type Message struct {
-	ID          int    `json:"id"`
-	RoomID      int    `json:"roomID"`
-	CreatorID   int    `json:"creatorID"`
-	CreatorName string `json:"creatorName"`
-	ReceiverID  int    `json:"receiverID"`
-	Text        string `json:"text"`
-	CreatedAt   string `json:"createdAt"`
+	ID           int    `json:"id"`
+	RoomID       int    `json:"roomID"`
+	CreatorID    int    `json:"creatorID"`
+	CreatorName  string `json:"creatorName"`
+	ReceiverID   int    `json:"receiverID"`
+	ReceiverName string `json:"receiverName"`
+	Text         string `json:"text"`
+	CreatedAt    string `json:"createdAt"`
 }
 type UserJoinToRoomMessageResponseWs struct {
+	Type    string `json:"type"`
+	Payload struct {
+		Success  bool      `json:"success"`
+		RoomID   int       `json:"roomID"`
+		RoomName string    `json:"roomName"`
+		Users    []User    `json:"users"`
+		Messages []Message `json:"messages"`
+	}
+}
+
+type UserSendRoomMessageWs struct {
+	Type    string `json:"type"`
+	Payload struct {
+		UserID      int    `json:"userID"`
+		RoomID      int    `json:"roomID"`
+		Message     string `json:"message"`
+		AccessToken string `json:"accessToken"`
+	}
+}
+
+type UserSendRoomMessageResponseWs struct {
 	Type    string `json:"type"`
 	Payload struct {
 		Success  bool      `json:"success"`

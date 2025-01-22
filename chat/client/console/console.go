@@ -142,9 +142,8 @@ func (console *Console) DisplayListRoomsScreen(userID int, userName string, user
 }
 
 func (console *Console) DisplayRoomScreen(userID int, userName string, roomID int, roomName string, users []types.User, messages []types.Message) {
-	//fmt.Println("DisplayRoomScreen::: ", userID, userName, roomID, roomName, users, messages)
 	console.currentScreen.Exit()
-	console.roomScreen.SetScreenData(room.Data{UserID: userID, RoomID: roomID, RoomName: roomName})
+	console.roomScreen.SetScreenData(room.Data{UserID: userID, RoomID: roomID, RoomName: roomName, Users: users, Messages: messages})
 	console.currentScreen = console.roomScreen
 	console.currentScreen.Render()
 }

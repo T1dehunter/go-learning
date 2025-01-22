@@ -4,6 +4,7 @@
     "creatorID": 1,
     "receiverID": 2,
     "roomID": 1,
-    "text": "Hello Arya!"
+    "text": "Hello Arya!",
+    "createdAt": "2025-01-15T00:42:00.000Z"
   }
 ]
