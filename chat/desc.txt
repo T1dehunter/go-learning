@@ -2,4 +2,6 @@ nodemon --exec "go run ./server start" --watch server --ext go --signal SIGTERM
 
 nodemon --exec "go run ./client" --watch client --ext go --signal SIGTERM
 
+nodemon --exec "go run ./logger" --watch logger --ext go --signal SIGTERM
+
 go run ./server seed
