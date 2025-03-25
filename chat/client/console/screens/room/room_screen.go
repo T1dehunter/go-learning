@@ -144,9 +144,6 @@ func (screen *RoomScreen) listenUserInput() {
 					screen.renderContent()
 				}
 
-			case e := <-screen.actionResChan:
-				fmt.Println("room screen get event: ", e)
-
 			case <-screen.exitCh:
 				return
 			}

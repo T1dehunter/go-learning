@@ -95,7 +95,6 @@ func (ws *Websocket) SendUserAuthMsg(name string, password string) *types.UserAu
 	if err != nil {
 		log.Fatalf("Error occurred during build auth message. Error: %s", err.Error())
 	}
-	fmt.Println("Sending auth message", string(authMessage))
 	ws.SendMsg(authMessage)
 
 	var response types.UserAuthMsgResponse

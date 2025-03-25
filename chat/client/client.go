@@ -165,7 +165,7 @@ func (client *Client) handleWelcomeUser(event events.UserChatConfirmed, console 
 		client.setState(stateUserAuthProcess)
 		console.DisplayAuthScreen()
 	} else {
-		fmt.Println("User wants to exit!!!")
+		fmt.Println("User declined chat")
 	}
 }
 
@@ -260,10 +260,6 @@ func (client *Client) handleUserSendRoomMessage(event events.UserSendRoomMessage
 		}
 		roomMessages = append(roomMessages, message)
 	}
-
-	//client.setState(stateUserSendRoomMessage)
-
-	fmt.Println("User send message!!!###", event.Message)
 
 	console.DisplayRoomScreen(
 		client.user.ID,
