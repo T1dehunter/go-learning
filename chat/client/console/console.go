@@ -48,33 +48,23 @@ func (userJoinToRoomMsg *UserJoinToRoomMessage) isMessage() {}
 type Console struct {
 	renderCh         chan string
 	inputTextCh      chan string
-	userActionCh     chan interface{}
-	userActionResCh  chan interface{}
+	uiActionCh       chan interface{}
+	actionResChan    chan interface{}
 	userInputHandler func(message string)
-	welcomeScreen    *welcome.WelcomeScreen
-	authScreen       *auth.AuthScreen
-	listRoomsScreen  *listrooms.ListRoomsScreen
-	roomScreen       *room.RoomScreen
-	exitScreen       *exit.ExitScreen
 	currentScreen    Screen
 }
 
 func NewConsole() *Console {
 	renderCh := make(chan string)
 	inputTextCh := make(chan string, 1)
-	userActionCh := make(chan interface{})
-	userActionResCh := make(chan interface{})
+	uiActionCh := make(chan interface{})
+	actionResChan := make(chan interface{})
 
 	return &Console{
-		renderCh:        renderCh,
-		inputTextCh:     inputTextCh,
-		userActionCh:    userActionCh,
-		userActionResCh: userActionResCh,
-		welcomeScreen:   welcome.NewWelcomeScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
-		authScreen:      auth.NewAuthScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
-		listRoomsScreen: listrooms.NewListRoomsScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
-		roomScreen:      room.NewRoomScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
-		exitScreen:      exit.NewExitScreen(renderCh, inputTextCh, userActionCh, userActionResCh),
+		renderCh:      renderCh,
+		inputTextCh:   inputTextCh,
+		uiActionCh:    uiActionCh,
+		actionResChan: actionResChan,
 	}
 }
 
@@ -82,10 +72,10 @@ func (console *Console) Start() (chan interface{}, chan interface{}) {
 	console.subscribeOnRenderScreen()
 	console.subscribeOnInputText()
 
-	console.currentScreen = console.welcomeScreen
+	console.currentScreen = welcome.NewWelcomeScreen(console.renderCh, console.inputTextCh, console.uiActionCh, console.actionResChan)
 	console.currentScreen.Render()
 
-	return console.userActionCh, console.userActionResCh
+	return console.uiActionCh, console.actionResChan
 }
 
 func (console *Console) subscribeOnRenderScreen() {
@@ -114,8 +104,6 @@ func (console *Console) subscribeOnInputText() {
 			inputText := scanner.Text()
 
 			console.inputTextCh <- inputText
-
-			//time.Sleep(100 * time.Millisecond)
 		}
 	}()
 }
@@ -128,28 +116,42 @@ func (console *Console) print(text string) {
 
 func (console *Console) DisplayAuthScreen() {
 	console.currentScreen.Exit()
-	console.currentScreen = console.authScreen
-	console.currentScreen.Render()
+
+	authScreen := auth.NewAuthScreen(console.renderCh, console.inputTextCh, console.uiActionCh, console.actionResChan)
+	authScreen.Render()
+
+	console.currentScreen = authScreen
 }
 
 func (console *Console) DisplayListRoomsScreen(userID int, userName string, userRooms []types.Room) {
 	console.currentScreen.Exit()
 
-	console.listRoomsScreen.SetUserData(userID, userName, userRooms)
+	listRoomsScreen := listrooms.NewListRoomsScreen(console.renderCh, console.inputTextCh, console.uiActionCh, console.actionResChan)
+	listRoomsScreen.SetUserData(userID, userName, userRooms)
+	listRoomsScreen.Render()
 
-	console.currentScreen = console.listRoomsScreen
-	console.currentScreen.Render()
+	console.currentScreen = listRoomsScreen
 }
 
 func (console *Console) DisplayRoomScreen(userID int, userName string, roomID int, roomName string, users []types.User, messages []types.Message) {
 	console.currentScreen.Exit()
-	console.roomScreen.SetScreenData(room.Data{UserID: userID, RoomID: roomID, RoomName: roomName, Users: users, Messages: messages})
-	console.currentScreen = console.roomScreen
-	console.currentScreen.Render()
+
+	roomScreen := room.NewRoomScreen(console.renderCh, console.inputTextCh, console.uiActionCh, console.actionResChan)
+	roomScreen.SetScreenData(room.Data{UserID: userID, RoomID: roomID, RoomName: roomName, Users: users, Messages: messages})
+	roomScreen.Render()
+
+	console.currentScreen = roomScreen
 }
 
 func (console *Console) DisplayExitScreen() {
 	console.currentScreen.Exit()
-	console.currentScreen = console.exitScreen
+
+	exitScreen := exit.NewExitScreen(console.renderCh, console.inputTextCh, console.uiActionCh, console.actionResChan)
+	exitScreen.Render()
+
+	console.currentScreen = exitScreen
+}
+
+func (console *Console) ReRenderCurrentScreen() {
 	console.currentScreen.Render()
 }

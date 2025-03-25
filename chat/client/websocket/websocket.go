@@ -12,82 +12,75 @@ import (
 type Websocket struct {
 	dataChannel chan string
 	connection  *websocket.Conn
+	handlers    []func(msg []byte)
+	test        string
 }
 
 func NewWebsocket(dataChannel chan string) *Websocket {
 	return &Websocket{
 		dataChannel: dataChannel,
 		connection:  nil,
+		handlers:    make([]func(msg []byte), 0),
 	}
-}
-
-func (ws *Websocket) initConnect() error {
-	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:3000/chat", nil)
-	if err == nil {
-		ws.connection = conn
-	}
-	return err
 }
 
 func (ws *Websocket) Connect() {
-	fmt.Println("Console websocket client starting...")
-	fmt.Println("\n")
-
-	err := ws.initConnect()
-	if err != nil {
-		message := fmt.Sprintf("Error connecting to WebSocket server: %s", err.Error())
-		fmt.Println(message)
-		ws.reConnect()
-	}
-
-	conn := ws.connection
-
-	var message string
-
-	conn.WriteMessage(websocket.TextMessage, []byte(message))
-
+	wsDataChan := ws.initConnect()
 	go func() {
-		for {
-			_, response, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("Error reading from WebSocket:", err)
-				ws.dataChannel <- "Error reading from WebSocket"
-				//ws.reConnect()
-			} else {
-				ws.dataChannel <- string(response)
-			}
+		for data := range wsDataChan {
+			ws.dataChannel <- data
 		}
 	}()
 }
 
-func (ws *Websocket) reConnect() {
-	fmt.Println("Start reconnecting to the WebSocket server ...")
+func (ws *Websocket) initConnect() chan string {
+	dataChannel := make(chan string)
 
-	maxAttempts := 30
-	currentAttempt := 0
+	connectToWs := func() {
+		conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:3000/chat", nil)
 
-	for currentAttempt < maxAttempts {
-		message := fmt.Sprintf("Reconnecting to the WebSocket server, attempt: %d", currentAttempt)
-		fmt.Println(message)
-
-		err := ws.initConnect()
 		if err == nil {
-			break
+			ws.connection = conn
+		} else {
+			fmt.Println("Error connecting to WebSocket server:", err)
 		}
-
-		currentAttempt++
-		time.Sleep(1 * time.Second)
 	}
+
+	connectToWs()
+
+	if ws.connection == nil {
+		panic("Error on connecting to ws client")
+	}
+
+	go func() {
+		attempt := 1
+		maxAttempts := 5
+		for {
+			_, wsMessage, err := ws.connection.ReadMessage()
+			if err != nil {
+				if attempt >= maxAttempts {
+					fmt.Println("Max attempts reached, closing connection...")
+					close(dataChannel)
+					break
+				}
+				ws.connection.Close()
+				time.Sleep(3 * time.Second)
+				connectToWs()
+				attempt++
+			} else {
+				for _, handler := range ws.handlers {
+					handler(wsMessage)
+				}
+				dataChannel <- string(wsMessage)
+			}
+		}
+	}()
+
+	return dataChannel
 }
 
-func (ws *Websocket) Disconnect() {
-	if ws.connection != nil {
-		ws.connection.Close()
-	}
-}
-
-func (ws *Websocket) SendUserAuthMessage(name string, password string) *types.UserAuthMessageResponseWs {
-	userAuthMessage := types.UserAuthMessageWs{
+func (ws *Websocket) SendUserAuthMsg(name string, password string) *types.UserAuthMsgResponse {
+	userAuthMessage := types.UserAuthMsg{
 		Type: "user_auth",
 		Payload: struct {
 			UserName string `json:"userName"`
@@ -103,9 +96,9 @@ func (ws *Websocket) SendUserAuthMessage(name string, password string) *types.Us
 		log.Fatalf("Error occurred during build auth message. Error: %s", err.Error())
 	}
 	fmt.Println("Sending auth message", string(authMessage))
-	ws.SendMessage(authMessage)
+	ws.SendMsg(authMessage)
 
-	var response types.UserAuthMessageResponseWs
+	var response types.UserAuthMsgResponse
 	for wsMessage := range ws.dataChannel {
 		err := json.Unmarshal([]byte(wsMessage), &response)
 		fmt.Println("Received message", wsMessage)
@@ -116,8 +109,8 @@ func (ws *Websocket) SendUserAuthMessage(name string, password string) *types.Us
 	return &response
 }
 
-func (ws *Websocket) SendUserConnectMessage(userID int, accessToken string) *types.UserConnectMessageResponseWs {
-	userConnectMessage := types.UserConnectMessageWs{
+func (ws *Websocket) SendUserConnectMsg(userID int, accessToken string) *types.UserConnectMsgResponse {
+	userConnectMessage := types.UserConnectMsg{
 		Type: "user_connect",
 		Payload: struct {
 			UserID      int    `json:"userID"`
@@ -132,9 +125,9 @@ func (ws *Websocket) SendUserConnectMessage(userID int, accessToken string) *typ
 	if err != nil {
 		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
 	}
-	ws.SendMessage(connectMsg)
+	ws.SendMsg(connectMsg)
 
-	var response types.UserConnectMessageResponseWs
+	var response types.UserConnectMsgResponse
 	for wsMessage := range ws.dataChannel {
 		err := json.Unmarshal([]byte(wsMessage), &response)
 		if err != nil || response.Type == "user_connected" {
@@ -144,8 +137,8 @@ func (ws *Websocket) SendUserConnectMessage(userID int, accessToken string) *typ
 	return &response
 }
 
-func (ws *Websocket) SendUserJoinRoomMessage(userID int, roomID int, accessToken string) *types.UserJoinToRoomMessageResponseWs {
-	message := types.UserJoinToRoomMessageWs{
+func (ws *Websocket) SendUserJoinRoomMsg(userID int, roomID int, accessToken string) *types.UserJoinToRoomMsgResponse {
+	message := types.UserJoinToRoomMsg{
 		Type: "user_join_to_room",
 		Payload: struct {
 			UserID      int    `json:"userID"`
@@ -162,9 +155,9 @@ func (ws *Websocket) SendUserJoinRoomMessage(userID int, roomID int, accessToken
 	if err != nil {
 		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
 	}
-	ws.SendMessage(messageJson)
+	ws.SendMsg(messageJson)
 
-	var response types.UserJoinToRoomMessageResponseWs
+	var response types.UserJoinToRoomMsgResponse
 	for wsMessage := range ws.dataChannel {
 		err := json.Unmarshal([]byte(wsMessage), &response)
 		if err != nil {
@@ -177,15 +170,10 @@ func (ws *Websocket) SendUserJoinRoomMessage(userID int, roomID int, accessToken
 	return &response
 }
 
-func (ws *Websocket) SendRoomMessage(userID int, roomID int, text string, accessToken string) *types.UserSendRoomMessageResponseWs {
-	message := types.UserSendRoomMessageWs{
+func (ws *Websocket) SendRoomMsg(userID int, roomID int, text string, accessToken string) *types.UserSendRoomMsgResponse {
+	message := types.UserSendRoomMsg{
 		Type: "user_send_room_message",
-		Payload: struct {
-			UserID      int    `json:"userID"`
-			RoomID      int    `json:"roomID"`
-			Message     string `json:"message"`
-			AccessToken string `json:"accessToken"`
-		}{
+		Payload: types.UserSendRoomMsgPayload{
 			UserID:      userID,
 			RoomID:      roomID,
 			Message:     text,
@@ -197,9 +185,9 @@ func (ws *Websocket) SendRoomMessage(userID int, roomID int, text string, access
 	if err != nil {
 		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
 	}
-	ws.SendMessage(messageJson)
+	ws.SendMsg(messageJson)
 
-	var response types.UserSendRoomMessageResponseWs
+	var response types.UserSendRoomMsgResponse
 	for wsMessage := range ws.dataChannel {
 		err := json.Unmarshal([]byte(wsMessage), &response)
 		if err != nil {
@@ -212,7 +200,51 @@ func (ws *Websocket) SendRoomMessage(userID int, roomID int, text string, access
 	return &response
 }
 
-func (ws *Websocket) SendMessage(message []byte) {
+func (ws *Websocket) SubscribeOnRoomMessages(handler func(msg types.UserSendRoomMsgResponse)) {
+	ws.handlers = append(ws.handlers, func(msg []byte) {
+		var response types.UserSendRoomMsgResponse
+		err := json.Unmarshal(msg, &response)
+		if err == nil && response.Type == "user_send_room_message" {
+			handler(response)
+		}
+	})
+}
+
+func (ws *Websocket) SendUserLeaveRoomMsg(userID int, roomID int) {
+	message := types.UserLeaveRoomMsg{
+		Type: "user_leave_room",
+		Payload: struct {
+			UserID int `json:"userID"`
+			RoomID int `json:"roomID"`
+		}{
+			UserID: userID,
+			RoomID: roomID,
+		},
+	}
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
+	}
+	ws.SendMsg(messageJson)
+}
+
+func (ws *Websocket) SendLogMsg(message string) {
+	logMessage := types.ClientLogMsg{
+		Type: "log_message",
+		Payload: struct {
+			Text string `json:"text"`
+		}{
+			Text: message,
+		},
+	}
+	messageJson, err := json.Marshal(logMessage)
+	if err != nil {
+		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
+	}
+	ws.SendMsg(messageJson)
+}
+
+func (ws *Websocket) SendMsg(message []byte) {
 	if ws.connection != nil {
 		ws.connection.WriteMessage(websocket.TextMessage, message)
 	}

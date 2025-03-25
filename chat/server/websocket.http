@@ -1,23 +1,37 @@
-### authenticate user
+### Connect to WebSocket server
 WEBSOCKET ws://localhost:3000/chat
-Content-Type: application/json
+#Content-Type: application/json
 
 {
-  "type": "user_auth", "payload": {"userName": "Sandor Clegane", "password": "Test1234"}
+  "type": "message",
+  "payload": {
+    "userID": 1,
+    "message": "Hello, WebSocket!"
+  }
 }
+
+
+### test
+WEBSOCKET ws://localhost:3000/chat
+Accept: application/json
+#Content-Type: application/json
+
+// Request body, for example:
+{
+  "type": "test", "payload": {"userName": "Sandor Clegane", "password": "Test1234"}
+}
+=== wait-for-server
+
 
 
 ### connect user
 WEBSOCKET ws://localhost:3000/chat
-Content-Type: application-json // Used for content highlighting only
+Content-Type: application/json // Used for content highlighting only
 
 {
  "type": "user_connect", "payload": {"userID": 1, "accessToken": "Test1234"}
 }
-=== wait-for-server
-{
- "type": "user_connect", "payload": {"userID": 2, "accessToken": "Test1234"}
-}
+
 
 ### join to room and send message
 WEBSOCKET ws://localhost:3000/chat
@@ -90,8 +104,8 @@ Content-Type: application-json // Used for content highlighting only
 
 ### Request with client messages
 #// It is possible to specify client events in request body. Use '===' to separate events.
-#// Add '=== wait-for-server' above a message to send it after a server response is received.
-#// To wait for N response, add '=== wait-for-server' N times.
+#// Add '=== wait-for-server' above a message to send it after a server messages is received.
+#// To wait for N messages, add '=== wait-for-server' N times.
 #WEBSOCKET ws://{{$exampleServer}}/ws
 #Content-Type: application/json // We use it for highlighting
 #
@@ -123,7 +137,7 @@ Content-Type: application-json // Used for content highlighting only
 #
 #> {%
 #    var i = 0
-#    response.body.onEachMessage((message, unsubscribe, output) => {
+#    messages.body.onEachMessage((message, unsubscribe, output) => {
 #        i++
 #        const jsonMessage = JSON.parse(message); // We know that our sample server returns JSON
 #        client.test("Server sent a JSON with 'message' property: " + i, () => {

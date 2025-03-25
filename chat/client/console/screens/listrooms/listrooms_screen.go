@@ -15,27 +15,27 @@ type UserData struct {
 	Rooms []types.Room
 }
 type ListRoomsScreen struct {
-	userData        UserData
-	renderCh        chan string
-	inputTextCh     chan string
-	userActionCh    chan interface{}
-	userActionResCh chan interface{}
-	exitCh          chan interface{}
+	userData      UserData
+	renderCh      chan string
+	inputTextCh   chan string
+	uiActionCh    chan interface{}
+	actionResChan chan interface{}
+	exitCh        chan interface{}
 }
 
 func NewListRoomsScreen(
 	renderCh chan string,
 	inputTextCh chan string,
-	userActionCh chan interface{},
-	userActionResCh chan interface{},
+	uiActionCh chan interface{},
+	actionResChan chan interface{},
 ) *ListRoomsScreen {
 	exitChan := make(chan interface{})
 	return &ListRoomsScreen{
-		renderCh:        renderCh,
-		inputTextCh:     inputTextCh,
-		userActionCh:    userActionCh,
-		userActionResCh: userActionResCh,
-		exitCh:          exitChan,
+		renderCh:      renderCh,
+		inputTextCh:   inputTextCh,
+		uiActionCh:    uiActionCh,
+		actionResChan: actionResChan,
+		exitCh:        exitChan,
 	}
 }
 
@@ -96,7 +96,7 @@ func (screen *ListRoomsScreen) listenUserInput() {
 			select {
 			case text := <-screen.inputTextCh:
 				if text == "q" {
-					screen.userActionCh <- events.UserChatExit{}
+					screen.uiActionCh <- events.UserChatExit{}
 					return
 				}
 				roomID, err := strconv.Atoi(text)
@@ -104,11 +104,10 @@ func (screen *ListRoomsScreen) listenUserInput() {
 					return
 				}
 				event := events.UserJoinRoom{RoomID: roomID}
-				screen.userActionCh <- event
+				screen.uiActionCh <- event
 			case <-screen.exitCh:
 				return
 			}
 		}
-
 	}()
 }

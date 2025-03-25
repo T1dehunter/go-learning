@@ -17,7 +17,7 @@ type Server struct {
 	authService    *auth.AuthService
 	roomService    *room.RoomService
 	messageService *message.MessageService
-	websocket      *weboscket.WebSocketServer
+	websocket      *weboscket.WebSocket
 }
 
 func NewServer() *Server {
@@ -31,51 +31,52 @@ func NewServer() *Server {
 		userService:    user.NewUserService(userRepository),
 		roomService:    room.NewRoomService(roomRepository),
 		messageService: message.NewMessageService(messageRepository),
-		websocket:      weboscket.NewWebSocketServer(),
+		websocket:      weboscket.NewWebSocket(),
 	}
 }
 
 func (server *Server) Start() {
+	http.HandleFunc("/chat", server.websocket.HandleEvents)
 
-	http.HandleFunc("/chat", server.websocket.Listen)
+	http.HandleFunc("/logs", server.websocket.StreamLogs)
 
-	server.websocket.SubscribeOnUserAuth(func(message weboscket.UserAuthMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserAuth(message, ws, server.userService, server.authService, server.roomService)
+	server.websocket.SubscribeOnUserAuth(func(message weboscket.UserAuthMsg, response *weboscket.Response) {
+		handlers.HandleUserAuth(message, server.userService, response)
 	})
 
-	server.websocket.SubscribeOnUserConnect(func(message weboscket.UserConnectMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserConnect(message, ws, server.userService, server.authService, server.roomService)
+	server.websocket.SubscribeOnUserConnect(func(message weboscket.UserConnectMsg, response *weboscket.Response) {
+		handlers.HandleUserConnect(message, server.userService, server.authService, server.roomService, response)
 	})
 
-	server.websocket.SubscribeOnUserCreateDirectRoom(func(message weboscket.UserCreateDirectRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserCreateDirectRoom(message, ws, server.userService, server.roomService)
+	server.websocket.SubscribeOnUserCreateDirectRoom(func(message weboscket.UserCreateRoomMsg, response *weboscket.Response) {
+		handlers.HandleUserCreateRoom(message, server.userService, server.roomService, response)
 	})
 
-	server.websocket.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserJoinToRoom(message, ws, server.userService, server.roomService, server.messageService)
+	server.websocket.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMsg, response *weboscket.Response) {
+		handlers.HandleUserJoinRoom(message, server.userService, server.roomService, server.messageService, response)
 	})
 
-	server.websocket.SubscribeOnUserJoinToRoom(func(message weboscket.UserJoinToRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserJoinToRoom(message, ws, server.userService, server.roomService, server.messageService)
+	server.websocket.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMsg, response *weboscket.RoomResponse) {
+		handlers.HandleUserSendRoomMessage(message, server.userService, server.roomService, server.messageService, response)
 	})
 
-	server.websocket.SubscribeOnUserSendRoomMessage(func(message weboscket.UserSendRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserSendRoomMessage(message, ws, server.userService, server.roomService, server.messageService)
+	server.websocket.SubscribeOnUserLeaveRoom(func(message weboscket.UserLeaveRoomMsg, response *weboscket.Response) {
+		handlers.HandleUserLeaveRoom(message, server.userService, server.roomService, response)
 	})
 
-	server.websocket.SubscribeOnUserLeaveRoom(func(message weboscket.UserLeaveRoomMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserLeaveRoom(message, ws, server.userService, server.roomService)
+	server.websocket.SubscribeOnUserSendDirectMessage(func(message weboscket.UserSendDirectMsg, response *weboscket.Response) {
+		handlers.HandleUserSendDirectMessage(message, server.userService, server.roomService, server.messageService, response)
 	})
 
-	server.websocket.SubscribeOnUserSendDirectMessage(func(message weboscket.UserSendDirectMessage, ws weboscket.WebsocketSender) {
-		handlers.HandleUserSendDirectMessage(message, ws, server.userService, server.roomService, server.messageService)
+	server.websocket.SubscribeOnGetRoomMessages(func(message weboscket.UserGetListRoomMsg, response *weboscket.Response) {
+		handlers.HandleGetRoomMessages(message, server.userService, server.roomService, server.messageService, response)
 	})
 
-	server.websocket.SubscribeOnGetRoomMessages(func(message weboscket.UserGetRoomMessages, ws weboscket.WebsocketSender) {
-		handlers.HandleGetRoomMessages(message, ws, server.userService, server.roomService, server.messageService)
+	server.websocket.SubscribeOnClientLogMsg(func(message weboscket.ClientLogMsg, response *weboscket.Response) {
+		handlers.HandleClientLogMsg(message, response)
 	})
 
-	log.Println("Server started!")
+	log.Println("websocket server started at :3000")
 
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }

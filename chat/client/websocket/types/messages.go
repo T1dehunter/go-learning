@@ -1,6 +1,6 @@
 package types
 
-type UserAuthMessageWs struct {
+type UserAuthMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserName string `json:"userName"`
@@ -8,7 +8,7 @@ type UserAuthMessageWs struct {
 	}
 }
 
-type UserAuthMessageResponseWs struct {
+type UserAuthMsgResponse struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID      int    `json:"userID"`
@@ -17,7 +17,7 @@ type UserAuthMessageResponseWs struct {
 	}
 }
 
-type UserConnectMessageWs struct {
+type UserConnectMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID      int    `json:"userID"`
@@ -35,7 +35,7 @@ type Room struct {
 	Type  string `json:"type"`
 	Users []User `json:"users"`
 }
-type UserConnectMessageResponseWs struct {
+type UserConnectMsgResponse struct {
 	Type    string `json:"type"`
 	Payload struct {
 		Success bool   `json:"success"`
@@ -43,7 +43,7 @@ type UserConnectMessageResponseWs struct {
 	} `json:"payload"`
 }
 
-type UserJoinToRoomMessageWs struct {
+type UserJoinToRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID      int    `json:"userID"`
@@ -62,7 +62,7 @@ type Message struct {
 	Text         string `json:"text"`
 	CreatedAt    string `json:"createdAt"`
 }
-type UserJoinToRoomMessageResponseWs struct {
+type UserJoinToRoomMsgResponse struct {
 	Type    string `json:"type"`
 	Payload struct {
 		Success  bool      `json:"success"`
@@ -73,23 +73,40 @@ type UserJoinToRoomMessageResponseWs struct {
 	}
 }
 
-type UserSendRoomMessageWs struct {
-	Type    string `json:"type"`
-	Payload struct {
-		UserID      int    `json:"userID"`
-		RoomID      int    `json:"roomID"`
-		Message     string `json:"message"`
-		AccessToken string `json:"accessToken"`
-	}
+type UserSendRoomMsgPayload struct {
+	UserID      int    `json:"userID"`
+	RoomID      int    `json:"roomID"`
+	Message     string `json:"message"`
+	AccessToken string `json:"accessToken"`
+}
+type UserSendRoomMsg struct {
+	Type    string                 `json:"type"`
+	Payload UserSendRoomMsgPayload `json:"payload"`
 }
 
-type UserSendRoomMessageResponseWs struct {
+type UserSendRoomMsgResponse struct {
 	Type    string `json:"type"`
 	Payload struct {
 		Success  bool      `json:"success"`
 		RoomID   int       `json:"roomID"`
 		RoomName string    `json:"roomName"`
+		UserID   int       `json:"userID"`
 		Users    []User    `json:"users"`
 		Messages []Message `json:"messages"`
+	}
+}
+
+type UserLeaveRoomMsg struct {
+	Type    string `json:"type"`
+	Payload struct {
+		UserID int `json:"userID"`
+		RoomID int `json:"roomID"`
+	}
+}
+
+type ClientLogMsg struct {
+	Type    string `json:"type"`
+	Payload struct {
+		Text string `json:"text"`
 	}
 }

@@ -1,25 +1,16 @@
 package console
 
 import (
-	"chat/logger/console/types"
+	"chat/logger/types"
 	"fmt"
 )
-
-type UserData struct {
-	ID       int
-	Username string
-}
 
 type Screen struct {
 	//logCh chan string
 }
 
-func NewScreen(
-// logCh chan string,
-) *Screen {
-	return &Screen{
-		//logCh: logCh,
-	}
+func NewScreen() *Screen {
+	return &Screen{}
 }
 
 func (screen *Screen) Start() {
@@ -31,20 +22,13 @@ func (screen *Screen) Start() {
 	fmt.Println(header)
 }
 
-func (screen *Screen) Render(event types.Event) {
-	text := fmt.Sprintf("Event: %s, CreatedAt: %s", event.Title, event.CreatedAt)
-	fmt.Println(text)
-	//screen.renderContent()
-	//screen.listenLogs()
-}
+func (screen *Screen) Render(event types.LogEvent) {
+	//text := fmt.Sprintf("Type: %s, Title: %s, CreatedAt: %s", event.Type, event.Title, event.CreatedAt)
+	eventType := "CLIENT"
+	if event.Type == types.ServerEvent {
+		eventType = "SERVER"
+	}
+	text := fmt.Sprintf("[%s] [%s] %s", event.CreatedAt, eventType, event.Title)
 
-func (screen *Screen) listenLogs() {
-	//go func() {
-	//	for {
-	//		select {
-	//		case log := <-screen.logCh:
-	//			fmt.Println("Log: ", log)
-	//		}
-	//	}
-	//}()
+	fmt.Println(text)
 }

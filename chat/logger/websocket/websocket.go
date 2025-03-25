@@ -1,85 +1,98 @@
 package websocket
 
 import (
+	"chat/logger/types"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"time"
 )
 
+type WsData = []byte
+
 type Websocket struct {
-	dataChannel chan string
-	connection  *websocket.Conn
+	streamChan chan types.LogEvent
 }
 
-func NewWebsocket(dataChannel chan string) *Websocket {
+func NewWebsocket(streamChan chan types.LogEvent) *Websocket {
 	return &Websocket{
-		dataChannel: dataChannel,
-		connection:  nil,
+		streamChan: streamChan,
 	}
-}
-
-func (ws *Websocket) initConnect() error {
-	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:3000/chat", nil)
-	if err == nil {
-		ws.connection = conn
-	}
-	return err
 }
 
 func (ws *Websocket) Connect() {
-	fmt.Println("Console websocket client starting...")
-	fmt.Println("\n")
-
-	err := ws.initConnect()
-	if err != nil {
-		message := fmt.Sprintf("Error connecting to WebSocket server: %s", err.Error())
-		fmt.Println(message)
-		ws.reConnect()
-	}
-
-	conn := ws.connection
-
-	var message string
-
-	conn.WriteMessage(websocket.TextMessage, []byte(message))
+	wsDataChan := ws.initConnect()
 
 	go func() {
-		for {
-			_, response, err := conn.ReadMessage()
+		for data := range wsDataChan {
+			if data == nil {
+				continue
+			}
+			var response types.LogEvent
+			err := json.Unmarshal(data, &response)
 			if err != nil {
-				log.Println("Error reading from WebSocket:", err)
-				ws.dataChannel <- "Error reading from WebSocket"
-				//ws.reConnect()
+				log.Println("error on parse message from websocket:", err)
 			} else {
-				ws.dataChannel <- string(response)
+				ws.streamChan <- response
 			}
 		}
 	}()
 }
 
-func (ws *Websocket) reConnect() {
-	fmt.Println("Start reconnecting to the WebSocket server ...")
+func (ws *Websocket) initConnect() chan WsData {
+	var connection *websocket.Conn
 
-	maxAttempts := 30
-	currentAttempt := 0
+	defer func() {
+		fmt.Println("closing connection...")
+		if connection != nil {
+			connection.Close()
+		}
+	}()
 
-	for currentAttempt < maxAttempts {
-		message := fmt.Sprintf("Reconnecting to the WebSocket server, attempt: %d", currentAttempt)
-		fmt.Println(message)
+	dataChannel := make(chan WsData)
 
-		err := ws.initConnect()
+	connectToWs := func() {
+		conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:3000/logs", nil)
+
 		if err == nil {
-			break
+			fmt.Println("logger client connected to websocket server")
+			connection = conn
+		} else {
+			fmt.Println("Error connecting to WebSocket server:", err)
 		}
 
-		currentAttempt++
-		time.Sleep(1 * time.Second)
 	}
-}
 
-func (ws *Websocket) Disconnect() {
-	if ws.connection != nil {
-		ws.connection.Close()
+	connectToWs()
+
+	if connection == nil {
+		panic("Error connecting to WebSocket server")
 	}
+
+	go func() {
+		attempt := 1
+		maxAttempts := 5
+		for {
+			_, wsMessage, err := connection.ReadMessage()
+			if err != nil {
+				if attempt >= maxAttempts {
+					//fmt.Println("Max attempts reached, closing connection...")
+					close(dataChannel)
+					break
+				}
+				connection.Close()
+				//fmt.Println("Error reading from WebSocket:", err)
+				//fmt.Println("Error reading from WebSocket:", wsMessage)
+				//fmt.Println("Start reconnecting to websocket server...")
+				time.Sleep(3 * time.Second)
+				connectToWs()
+				attempt++
+			} else {
+				dataChannel <- wsMessage
+			}
+		}
+	}()
+
+	return dataChannel
 }

@@ -23,29 +23,29 @@ type Data struct {
 }
 
 type RoomScreen struct {
-	state           string
-	data            Data
-	renderCh        chan string
-	inputTextCh     chan string
-	userActionCh    chan interface{}
-	userActionResCh chan interface{}
-	exitCh          chan interface{}
+	state         string
+	data          Data
+	renderCh      chan string
+	inputTextCh   chan string
+	uiActionCh    chan interface{}
+	actionResChan chan interface{}
+	exitCh        chan interface{}
 }
 
 func NewRoomScreen(
 	renderCh chan string,
 	inputTextCh chan string,
-	userActionCh chan interface{},
-	userActionResCh chan interface{},
+	uiActionCh chan interface{},
+	actionResChan chan interface{},
 ) *RoomScreen {
 	exitChan := make(chan interface{})
 	return &RoomScreen{
-		state:           chooseCommand,
-		renderCh:        renderCh,
-		inputTextCh:     inputTextCh,
-		userActionCh:    userActionCh,
-		userActionResCh: userActionResCh,
-		exitCh:          exitChan,
+		state:         chooseCommand,
+		renderCh:      renderCh,
+		inputTextCh:   inputTextCh,
+		uiActionCh:    uiActionCh,
+		actionResChan: actionResChan,
+		exitCh:        exitChan,
 	}
 }
 
@@ -56,7 +56,6 @@ func (screen *RoomScreen) SetScreenData(data Data) {
 func (screen *RoomScreen) Render() {
 	screen.renderContent()
 	screen.listenUserInput()
-	screen.listenUserActionResult()
 }
 
 func (screen *RoomScreen) renderContent() {
@@ -65,7 +64,6 @@ func (screen *RoomScreen) renderContent() {
   %s
 ==========================================================================================================
 `
-	//fmt.Printf("%+v\n", screen.data)
 	titleText := screen.getTitleText()
 	currTittle := ""
 	screenText := ""
@@ -78,6 +76,7 @@ func (screen *RoomScreen) renderContent() {
 		screen.renderCh <- screenText
 		time.Sleep(20 * time.Millisecond)
 	}
+	screenText = fmt.Sprintf(template, titleText)
 
 	messagesText := screen.getMessagesText()
 
@@ -133,13 +132,20 @@ func (screen *RoomScreen) listenUserInput() {
 					screen.printAskEnterMessage()
 					screen.setState(enterMessage)
 				} else if screen.state == chooseCommand && text == "2" {
-					event := events.UserRoomExit{}
-					screen.userActionCh <- event
+					event := events.UserRoomExit{
+						UserID: screen.data.UserID,
+						RoomID: screen.data.RoomID,
+					}
+					screen.uiActionCh <- event
 				} else if screen.state == enterMessage && text != "" {
-					//fmt.Println("room screen send msg: ", text)
 					event := events.UserSendRoomMessage{RoomID: screen.data.RoomID, Message: text}
-					screen.userActionCh <- event
+					screen.uiActionCh <- event
+				} else {
+					screen.renderContent()
 				}
+
+			case e := <-screen.actionResChan:
+				fmt.Println("room screen get event: ", e)
 
 			case <-screen.exitCh:
 				return
@@ -152,21 +158,4 @@ func (screen *RoomScreen) listenUserInput() {
 func (screen *RoomScreen) printAskEnterMessage() {
 	fmt.Println("Enter your message:")
 	fmt.Print(symbols.Prompt)
-}
-
-func (screen *RoomScreen) listenUserActionResult() {
-	go func() {
-		for {
-			select {
-			case actionResult := <-screen.userActionResCh:
-				fmt.Println("room screen get event: ", actionResult)
-				//switch event := actionResult.(type) {
-				//
-				//
-				////case events.UserAuthResponse:
-				////	fmt.Println("room screen: ", event)
-				//}
-			}
-		}
-	}()
 }

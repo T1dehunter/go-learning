@@ -1,4 +1,4 @@
-package response
+package messages
 
 type UserAuthenticatedMsg struct {
 	Type    string `json:"type"`
@@ -7,6 +7,10 @@ type UserAuthenticatedMsg struct {
 		UserName    string `json:"userName"`
 		AccessToken string `json:"accessToken"`
 	} `json:"payload"`
+}
+
+type UserAuthError struct {
+	Type string `json:"type"`
 }
 
 type UserData struct {
@@ -55,6 +59,7 @@ type UserSendRoomMsg struct {
 		Success  bool       `json:"success"`
 		RoomID   int        `json:"roomID"`
 		RoomName string     `json:"roomName"`
+		UserID   int        `json:"userID"`
 		Users    []UserData `json:"users"`
 		Messages []Message  `json:"messages"`
 	} `json:"payload"`

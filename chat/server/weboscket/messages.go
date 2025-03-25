@@ -1,6 +1,6 @@
 package weboscket
 
-type UserAuthMessage struct {
+type UserAuthMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserName string `json:"userName"`
@@ -8,7 +8,7 @@ type UserAuthMessage struct {
 	} `json:"payload"`
 }
 
-type UserConnectMessage struct {
+type UserConnectMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID      int    `json:"userID"`
@@ -17,7 +17,7 @@ type UserConnectMessage struct {
 	}
 }
 
-type UserCreateDirectRoomMessage struct {
+type UserCreateRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		CreatorID int `json:"creatorID"`
@@ -25,7 +25,7 @@ type UserCreateDirectRoomMessage struct {
 	} `json:"payload"`
 }
 
-type UserJoinToRoomMessage struct {
+type UserJoinToRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID int `json:"userID"`
@@ -33,7 +33,7 @@ type UserJoinToRoomMessage struct {
 	} `json:"payload"`
 }
 
-type UserSendRoomMessage struct {
+type UserSendRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID  int    `json:"userID"`
@@ -42,7 +42,7 @@ type UserSendRoomMessage struct {
 	} `json:"payload"`
 }
 
-type UserLeaveRoomMessage struct {
+type UserLeaveRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID int `json:"userID"`
@@ -50,7 +50,7 @@ type UserLeaveRoomMessage struct {
 	} `json:"payload"`
 }
 
-type UserSendDirectMessage struct {
+type UserSendDirectMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID     int    `json:"userID"`
@@ -60,7 +60,7 @@ type UserSendDirectMessage struct {
 	} `json:"payload"`
 }
 
-type UserGetRoomMessages struct {
+type UserGetListRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
 		UserID int `json:"userID"`
@@ -68,10 +68,20 @@ type UserGetRoomMessages struct {
 	} `json:"payload"`
 }
 
+type ClientLogMsg struct {
+	Type    string `json:"type"`
+	Payload struct {
+		Text string `json:"text"`
+	} `json:"payload"`
+}
+
+type LogMsg struct {
+	Type      string `json:"type"`
+	Title     string `json:"title"`
+	CreatedAt string `json:"createdAt"`
+}
+
 type WebsocketSender interface {
-	RegisterConnection(userID int)
 	SendMessageToUser(connectionID int, message string)
-	SendMessageToRoom(connectionID int, message string)
-	AddUserToNamespace(namespace string)
-	SendMessageToNamespace(namespace string, message string)
+	SendLog(msg LogMsg)
 }

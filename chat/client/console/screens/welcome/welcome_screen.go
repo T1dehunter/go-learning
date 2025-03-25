@@ -7,26 +7,26 @@ import (
 )
 
 type WelcomeScreen struct {
-	renderCh        chan string
-	inputTextCh     chan string
-	userActionCh    chan interface{}
-	userActionResCh chan interface{}
-	exitCh          chan interface{}
+	renderCh      chan string
+	inputTextCh   chan string
+	uiActionCh    chan interface{}
+	actionResChan chan interface{}
+	exitCh        chan interface{}
 }
 
 func NewWelcomeScreen(
 	renderCh chan string,
 	inputTextCh chan string,
-	userActionCh chan interface{},
-	userActionResCh chan interface{},
+	uiActionCh chan interface{},
+	actionResChan chan interface{},
 ) *WelcomeScreen {
 	exitChan := make(chan interface{})
 	return &WelcomeScreen{
-		renderCh:        renderCh,
-		inputTextCh:     inputTextCh,
-		userActionCh:    userActionCh,
-		userActionResCh: userActionResCh,
-		exitCh:          exitChan,
+		renderCh:      renderCh,
+		inputTextCh:   inputTextCh,
+		uiActionCh:    uiActionCh,
+		actionResChan: actionResChan,
+		exitCh:        exitChan,
 	}
 }
 
@@ -89,7 +89,7 @@ func (welcomeScreen *WelcomeScreen) listenUserInput() {
 
 				event := events.UserChatConfirmed{confirmation}
 
-				welcomeScreen.userActionCh <- event
+				welcomeScreen.uiActionCh <- event
 			case <-welcomeScreen.exitCh:
 				return
 			}

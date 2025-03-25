@@ -8,21 +8,21 @@ import (
 )
 
 type ExitScreen struct {
-	renderCh        chan string
-	inputTextCh     chan string
-	userActionCh    chan interface{}
-	userActionResCh chan interface{}
-	exit            chan interface{}
+	renderCh      chan string
+	inputTextCh   chan string
+	uiActionCh    chan interface{}
+	actionResChan chan interface{}
+	exit          chan interface{}
 }
 
-func NewExitScreen(renderCh chan string, inputTextCh chan string, userActionCh chan interface{}, userActionResCh chan interface{}) *ExitScreen {
+func NewExitScreen(renderCh chan string, inputTextCh chan string, uiActionCh chan interface{}, actionResChan chan interface{}) *ExitScreen {
 	exitChan := make(chan interface{})
 	return &ExitScreen{
-		renderCh:        renderCh,
-		inputTextCh:     inputTextCh,
-		userActionCh:    userActionCh,
-		userActionResCh: userActionResCh,
-		exit:            exitChan,
+		renderCh:      renderCh,
+		inputTextCh:   inputTextCh,
+		uiActionCh:    uiActionCh,
+		actionResChan: actionResChan,
+		exit:          exitChan,
 	}
 }
 

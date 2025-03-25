@@ -5,18 +5,18 @@ import (
 	"chat/client/console/events"
 	consoleTypes "chat/client/console/types"
 	"chat/client/websocket"
+	"chat/client/websocket/types"
 	"fmt"
 	"io"
 )
 
 const (
-	stateUserWelcome         = "USER_WELCOME"
-	stateUserAuthProcess     = "USER_AUTH_PROCESS"
-	stateUserAuthenticated   = "USER_AUTHENTICATED"
-	stateUserConnected       = "USER_CONNECTED"
-	stateUserJoinedToRoom    = "USER_JOINED_TO_ROOM"
-	stateUserSendRoomMessage = "USER_SEND_ROOM_MESSAGE"
-	stateUserExit            = "USER_EXIT"
+	stateUserWelcome       = "USER_WELCOME"
+	stateUserAuthProcess   = "USER_AUTH_PROCESS"
+	stateUserAuthenticated = "USER_AUTHENTICATED"
+	stateUserConnected     = "USER_CONNECTED"
+	stateUserJoinedToRoom  = "USER_JOINED_TO_ROOM"
+	stateUserExit          = "USER_EXIT"
 )
 
 type AuthenticatedUser struct {
@@ -27,37 +27,39 @@ type AuthenticatedUser struct {
 
 type Client struct {
 	user          *AuthenticatedUser
+	userRooms     []consoleTypes.Room
 	state         string
 	input         io.Reader
 	output        io.Writer
-	websocket     websocket.Websocket
+	websocket     *websocket.Websocket
 	wsDataChannel chan string
 }
 
 func NewClient(input io.Reader, output io.Writer) *Client {
-	wsDataChannel := make(chan string)
-	ws := websocket.NewWebsocket(wsDataChannel)
-
-	ws.Connect()
-
 	return &Client{
 		state:         stateUserWelcome,
 		input:         input,
 		output:        output,
-		websocket:     *ws,
-		wsDataChannel: wsDataChannel,
+		wsDataChannel: make(chan string),
 	}
 }
 
-func (client *Client) Start() {
+func (client *Client) Start(user string) {
+	ws := websocket.NewWebsocket(client.wsDataChannel)
+	ws.Connect()
+
+	client.websocket = ws
+
 	consl := console.NewConsole()
 
-	userActionCh, userActionResCh := consl.Start()
+	uiActionCh, actionResChan := consl.Start()
 
 	// TODO - temp for development
-	client.customizeState(consl)
+	client.customizeState(consl, user)
 
-	client.listenUserActions(userActionCh, userActionResCh, consl)
+	client.listenWsEvents(consl)
+
+	client.listenUserActions(uiActionCh, actionResChan, consl)
 }
 
 func (client *Client) Stop() {
@@ -65,30 +67,87 @@ func (client *Client) Stop() {
 }
 
 // for development purposes
-func (client *Client) customizeState(console *console.Console) {
-	user := &AuthenticatedUser{
-		ID:          1,
-		Name:        "Sandor Clegane",
-		AccessToken: "Test1234",
+func (client *Client) customizeState(console *console.Console, userName string) {
+	var user *AuthenticatedUser
+
+	if userName == "Sandor" {
+		user = &AuthenticatedUser{
+			ID:          1,
+			Name:        "Sandor Clegane",
+			AccessToken: "Test1234",
+		}
 	}
+
+	if userName == "Arya" {
+		user = &AuthenticatedUser{
+			ID:          2,
+			Name:        "Arya Stark",
+			AccessToken: "Test1234",
+		}
+	}
+
+	if user == nil {
+		panic("User not found")
+	}
+
 	userRooms := client.connectUser(user)
 	client.setUserData(user)
 	client.setState(stateUserConnected)
+	client.userRooms = userRooms
 	console.DisplayListRoomsScreen(user.ID, user.Name, userRooms)
 }
 
-func (client *Client) listenUserActions(userActionCh chan interface{}, userActionResCh chan interface{}, consl *console.Console) {
-	for userMessage := range userActionCh {
+func (client *Client) listenWsEvents(consl *console.Console) {
+	client.websocket.SubscribeOnRoomMessages(func(msg types.UserSendRoomMsgResponse) {
+		if client.state != stateUserJoinedToRoom {
+			return
+		}
+
+		isCurrUserSender := msg.Payload.UserID == client.user.ID
+		if isCurrUserSender {
+			return
+		}
+
+		var roomUsers []consoleTypes.User
+		for _, user := range msg.Payload.Users {
+			roomUsers = append(roomUsers, consoleTypes.User{ID: user.ID, Name: user.Name})
+		}
+
+		var roomMessages []consoleTypes.Message
+		for _, msg := range msg.Payload.Messages {
+			message := consoleTypes.Message{
+				ID:           msg.ID,
+				RoomID:       msg.RoomID,
+				CreatorID:    msg.CreatorID,
+				CreatorName:  msg.CreatorName,
+				ReceiverID:   msg.ReceiverID,
+				ReceiverName: msg.ReceiverName,
+				Text:         msg.Text,
+				CreatedAt:    msg.CreatedAt,
+			}
+			roomMessages = append(roomMessages, message)
+		}
+		consl.DisplayRoomScreen(client.user.ID, client.user.Name, msg.Payload.RoomID, msg.Payload.RoomName, roomUsers, roomMessages)
+	})
+}
+
+func (client *Client) listenUserActions(
+	uiActionCh chan interface{},
+	actionResChan chan interface{},
+	consl *console.Console,
+) {
+	for userMessage := range uiActionCh {
 		switch msg := userMessage.(type) {
 
 		case events.UserChatConfirmed:
 			client.handleWelcomeUser(msg, consl)
 		case events.UserAuthRequest:
-			client.handleAuthUser(msg, consl, userActionResCh)
+			client.handleAuthUser(msg, consl, actionResChan)
 		case events.UserJoinRoom:
 			client.handleUserJoinRoom(msg, consl)
+		case events.UserRoomExit:
+			client.handleUserRoomExit(msg, consl)
 		case events.UserSendRoomMessage:
-			//fmt.Println("User send message!!!", msg)
 			client.handleUserSendRoomMessage(msg, consl)
 		case events.UserChatExit:
 			client.handleExitUser(msg, consl)
@@ -110,11 +169,11 @@ func (client *Client) handleWelcomeUser(event events.UserChatConfirmed, console 
 	}
 }
 
-func (client *Client) handleAuthUser(msg events.UserAuthRequest, console *console.Console, userActionResCh chan interface{}) {
+func (client *Client) handleAuthUser(msg events.UserAuthRequest, console *console.Console, actionResChan chan interface{}) {
 	if !client.isUserAuthProcessState() {
 		return
 	}
-	user := client.authenticateUser(msg.Username, msg.Password, userActionResCh)
+	user := client.authenticateUser(msg.Username, msg.Password, actionResChan)
 	if user != nil {
 		client.setUserData(user)
 		client.setState(stateUserAuthenticated)
@@ -127,8 +186,10 @@ func (client *Client) handleUserConnect(user *AuthenticatedUser, console *consol
 		return
 	}
 	userRooms := client.connectUser(user)
+	client.userRooms = userRooms
 	client.setState(stateUserConnected)
-	console.DisplayListRoomsScreen(user.ID, user.Name, userRooms)
+
+	console.DisplayListRoomsScreen(user.ID, user.Name, client.userRooms)
 }
 
 func (client *Client) handleUserJoinRoom(event events.UserJoinRoom, console *console.Console) {
@@ -136,7 +197,7 @@ func (client *Client) handleUserJoinRoom(event events.UserJoinRoom, console *con
 		return
 	}
 
-	res := client.websocket.SendUserJoinRoomMessage(client.user.ID, event.RoomID, client.user.AccessToken)
+	res := client.websocket.SendUserJoinRoomMsg(client.user.ID, event.RoomID, client.user.AccessToken)
 
 	var roomUsers []consoleTypes.User
 	for _, user := range res.Payload.Users {
@@ -162,12 +223,23 @@ func (client *Client) handleUserJoinRoom(event events.UserJoinRoom, console *con
 	console.DisplayRoomScreen(client.user.ID, client.user.Name, res.Payload.RoomID, res.Payload.RoomName, roomUsers, roomMessages)
 }
 
+func (client *Client) handleUserRoomExit(event events.UserRoomExit, console *console.Console) {
+	if !client.isUserJoinedToRoomState() {
+		return
+	}
+
+	client.websocket.SendUserLeaveRoomMsg(client.user.ID, event.RoomID)
+
+	client.setState(stateUserConnected)
+	console.DisplayListRoomsScreen(client.user.ID, client.user.Name, client.userRooms)
+}
+
 func (client *Client) handleUserSendRoomMessage(event events.UserSendRoomMessage, console *console.Console) {
 	if !client.isUserJoinedToRoomState() {
 		return
 	}
 
-	res := client.websocket.SendRoomMessage(client.user.ID, event.RoomID, event.Message, client.user.AccessToken)
+	res := client.websocket.SendRoomMsg(client.user.ID, event.RoomID, event.Message, client.user.AccessToken)
 
 	var roomUsers []consoleTypes.User
 	for _, user := range res.Payload.Users {
@@ -208,11 +280,11 @@ func (client *Client) handleExitUser(event events.UserChatExit, console *console
 	console.DisplayExitScreen()
 }
 
-func (client *Client) authenticateUser(name string, password string, userActionResCh chan interface{}) *AuthenticatedUser {
-	response := client.websocket.SendUserAuthMessage(name, password)
+func (client *Client) authenticateUser(name string, password string, actionResChan chan interface{}) *AuthenticatedUser {
+	response := client.websocket.SendUserAuthMsg(name, password)
 	if response == nil || response.Type != "user_authenticated" {
 		event := events.UserAuthFailedRes{}
-		userActionResCh <- event
+		actionResChan <- event
 		return nil
 	}
 
@@ -229,7 +301,7 @@ func (client *Client) authenticateUser(name string, password string, userActionR
 
 func (client *Client) connectUser(user *AuthenticatedUser) []consoleTypes.Room {
 	var userRooms []consoleTypes.Room
-	response := client.websocket.SendUserConnectMessage(user.ID, user.AccessToken)
+	response := client.websocket.SendUserConnectMsg(user.ID, user.AccessToken)
 	if response == nil || response.Type != "user_connected" {
 		return userRooms
 	}

@@ -43,6 +43,9 @@ type UserSendRoomMessage struct {
 	Message string
 }
 
-type UserRoomExit struct{}
+type UserRoomExit struct {
+	UserID int
+	RoomID int
+}
 
 type UserChatExit struct{}

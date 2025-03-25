@@ -19,28 +19,28 @@ type UserData struct {
 }
 
 type AuthScreen struct {
-	state           string
-	renderCh        chan string
-	inputTextCh     chan string
-	userActionCh    chan interface{}
-	userActionResCh chan interface{}
-	exitCh          chan interface{}
+	state         string
+	renderCh      chan string
+	inputTextCh   chan string
+	uiActionChan  chan interface{}
+	actionResChan chan interface{}
+	exitCh        chan interface{}
 }
 
 func NewAuthScreen(
 	renderCh chan string,
 	inputTextCh chan string,
-	userActionCh chan interface{},
-	userActionResCh chan interface{},
+	uiActionChan chan interface{},
+	actionResChan chan interface{},
 ) *AuthScreen {
 	exitChan := make(chan interface{})
 	return &AuthScreen{
-		state:           authenticating,
-		renderCh:        renderCh,
-		inputTextCh:     inputTextCh,
-		userActionCh:    userActionCh,
-		userActionResCh: userActionResCh,
-		exitCh:          exitChan,
+		state:         authenticating,
+		renderCh:      renderCh,
+		inputTextCh:   inputTextCh,
+		uiActionChan:  uiActionChan,
+		actionResChan: actionResChan,
+		exitCh:        exitChan,
 	}
 }
 
@@ -91,7 +91,7 @@ func (authScreen *AuthScreen) listenUserInput() {
 					password = text
 
 					event := events.UserAuthRequest{Username: userName, Password: password}
-					authScreen.userActionCh <- event
+					authScreen.uiActionChan <- event
 				}
 
 				if authScreen.state == reauthenticating {
@@ -102,7 +102,7 @@ func (authScreen *AuthScreen) listenUserInput() {
 						authScreen.renderContent()
 					} else if text == "exit" {
 						event := events.UserChatExit{}
-						authScreen.userActionCh <- event
+						authScreen.uiActionChan <- event
 					}
 				}
 
@@ -118,7 +118,7 @@ func (authScreen *AuthScreen) listenUserActionResult() {
 	go func() {
 		for {
 			select {
-			case actionResult := <-authScreen.userActionResCh:
+			case actionResult := <-authScreen.actionResChan:
 				if _, ok := actionResult.(events.UserAuthFailedRes); ok {
 					authScreen.handleUserAuthFailed()
 				}
