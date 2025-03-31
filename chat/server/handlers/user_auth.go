@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -16,15 +15,12 @@ func HandleUserAuth(
 	userService *user.UserService,
 	response *weboscket.Response,
 ) {
-	fmt.Printf("Handler HandleUserAuth received message -> %+v\n", message)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
 
 	user := userService.FindUserByNameAndPassword(ctx, message.Payload.UserName, message.Payload.Password)
 	if user == nil {
-		log.Println("Error authenticating user: user not found")
 		res := messages.UserAuthError{
 			Type: "user_not_authenticated",
 		}
@@ -37,14 +33,7 @@ func HandleUserAuth(
 		return
 	}
 
-	log.Println("User is successfully authenticated")
-
-	time.Sleep(2 * time.Second)
-
-	// for testing purposes only, user's password is sent back to the user as access token
-	//responseMsg := fmt.Sprintf("{\"type\": \"user_authenticated\", \"payload\": {\"userID\": %d, \"userName\": \"%s\", \"accessToken\": \"%s\"}}", user.Id, user.Name, user.Password)
-
-	res := messages.UserAuthenticatedMsg{
+	msg := messages.UserAuthenticatedMsg{
 		Type: "user_authenticated",
 		Payload: struct {
 			UserID      int    `json:"userID"`
@@ -57,11 +46,7 @@ func HandleUserAuth(
 		},
 	}
 
-	resMsg, err := json.Marshal(res)
-	if err != nil {
-		fmt.Println("Error converting messages to JSON:", err)
-		return
-	}
+	msgJson, _ := json.Marshal(msg)
 
-	response.SendMessage(string(resMsg))
+	response.SendMessage(string(msgJson))
 }

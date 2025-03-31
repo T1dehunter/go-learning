@@ -77,15 +77,13 @@ func (ws *Websocket) initConnect() chan WsData {
 			_, wsMessage, err := connection.ReadMessage()
 			if err != nil {
 				if attempt >= maxAttempts {
-					//fmt.Println("Max attempts reached, closing connection...")
 					close(dataChannel)
 					break
 				}
 				connection.Close()
-				//fmt.Println("Error reading from WebSocket:", err)
-				//fmt.Println("Error reading from WebSocket:", wsMessage)
-				//fmt.Println("Start reconnecting to websocket server...")
-				time.Sleep(3 * time.Second)
+
+				time.Sleep(2 * time.Second)
+
 				connectToWs()
 				attempt++
 			} else {

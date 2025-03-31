@@ -8,7 +8,6 @@ import (
 	"chat/server/weboscket"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 )
@@ -20,20 +19,16 @@ func HandleUserConnect(
 	roomService *room.RoomService,
 	response *weboscket.Response,
 ) {
-	fmt.Printf("Handler HandleUserConnect received message -> %+v\n", message)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
-
-	fmt.Println("HandleUserConnect message.Payload.UserID", message.Payload)
 
 	user := userService.FindUserById(ctx, message.Payload.UserID)
 	if user == nil {
 		log.Println("Error connecting user: user not found")
 		return
 	}
-	fmt.Println("user user user: ", user.Password)
+
 	isAuthenticated := authService.AuthenticateUser(user, message.Payload.AccessToken)
 	if !isAuthenticated {
 		log.Println("Error connecting user: user is not authenticated")
@@ -41,19 +36,8 @@ func HandleUserConnect(
 		return
 	}
 
-	//ws.RegisterConnection(user.Id)
-
-	//ws.AddUserToNamespace("connected_users")
-
-	if user.RoomID != nil {
-		//roomName := fmt.Sprintf("room_%d", *user.RoomID)
-		//ws.AddUserToNamespace(roomName)
-	}
-
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	userRooms := roomService.FindUserRooms(ctx, user.Id)
-
-	time.Sleep(2 * time.Second)
 
 	roomsResponse := []messages.UserRoom{}
 	for _, room := range userRooms {
@@ -71,7 +55,8 @@ func HandleUserConnect(
 			Users: roomUsers,
 		})
 	}
-	res := messages.UserConnectedMsg{
+
+	msg := messages.UserConnectedMsg{
 		Type: "user_connected",
 		Payload: struct {
 			Success bool                `json:"success"`
@@ -81,11 +66,8 @@ func HandleUserConnect(
 			Rooms:   roomsResponse,
 		},
 	}
-	resMsg, err := json.Marshal(res)
-	if err != nil {
-		fmt.Println("Error converting messages to JSON:", err)
-		return
-	}
-	fmt.Println("resMsg", string(resMsg))
-	response.SendMessageToUser(user.Id, string(resMsg))
+
+	msgJson, _ := json.Marshal(msg)
+
+	response.SendMessageToUser(user.Id, string(msgJson))
 }

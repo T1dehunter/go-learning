@@ -8,7 +8,6 @@ import (
 	"chat/server/weboscket"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 )
@@ -20,8 +19,6 @@ func HandleUserJoinRoom(
 	messageService *message.MessageService,
 	response *weboscket.Response,
 ) {
-	fmt.Printf("Handler HandleUserJoinToRoom received message -> %+v\n", message)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
@@ -39,9 +36,6 @@ func HandleUserJoinRoom(
 	}
 
 	roomService.JoinUser(user.Id, room.Id)
-
-	//roomName := fmt.Sprintf("room_%d", room.Id)
-	//ws.AddUserToNamespace(roomName)
 
 	roomMessages := messageService.FindRoomMessages(ctx, room.Id)
 
@@ -88,16 +82,7 @@ func HandleUserJoinRoom(
 		})
 	}
 
-	log.Println("User joined to room")
-
-	time.Sleep(2 * time.Second)
-
-	userName := fmt.Sprintf("Dear user %s", user.Name)
-	userMsg := fmt.Sprintf("%s you are joined to room %s", userName, room.Name)
-
-	fmt.Println("userMsg", userMsg)
-
-	res := messages.UserJoinedToRoomMsg{
+	msg := messages.UserJoinedToRoomMsg{
 		Type: "user_joined_to_room",
 		Payload: struct {
 			Success  bool                `json:"success"`
@@ -113,10 +98,8 @@ func HandleUserJoinRoom(
 			Messages: roomMessagesData,
 		},
 	}
-	resMsg, err := json.Marshal(res)
-	if err != nil {
-		fmt.Println("Error converting messages to JSON:", err)
-		return
-	}
-	response.SendMessageToUser(user.Id, string(resMsg))
+
+	msgJson, _ := json.Marshal(msg)
+
+	response.SendMessageToUser(user.Id, string(msgJson))
 }

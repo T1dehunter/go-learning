@@ -30,13 +30,13 @@ func HandleUserSendRoomMessage(
 
 	user := userService.FindUserById(ctx, message.Payload.UserID)
 	if user == nil {
-		log.Println("Error joining to room: user not found")
+		log.Println("Error sending room message: user not found")
 		return
 	}
 
 	room := roomService.FindRoomById(message.Payload.RoomID)
 	if room == nil {
-		log.Println("Error joining to room: room not found")
+		log.Println("Error sending room message: room not found")
 		return
 	}
 
@@ -46,7 +46,6 @@ func HandleUserSendRoomMessage(
 	messageService.SaveMessage(newMsg)
 
 	roomMessages := messageService.FindRoomMessages(ctx, room.Id)
-	fmt.Printf("MESSAGESSSS %+v\n", roomMessages[0])
 
 	roomUsers := userService.FindAllUsersByIds(ctx, room.UserIds)
 	var roomUsersData []messages.UserData
@@ -91,16 +90,7 @@ func HandleUserSendRoomMessage(
 		})
 	}
 
-	log.Println("User joined to room")
-
-	time.Sleep(2 * time.Second)
-
-	userName := fmt.Sprintf("Dear user %s", user.Name)
-	userMsg := fmt.Sprintf("%s you are joined to room %s", userName, room.Name)
-
-	fmt.Println("userMsg", userMsg)
-
-	res := messages.UserSendRoomMsg{
+	msg := messages.UserSendRoomMsg{
 		Type: "user_send_room_message",
 		Payload: struct {
 			Success  bool                `json:"success"`
@@ -118,11 +108,8 @@ func HandleUserSendRoomMessage(
 			Messages: roomMessagesData,
 		},
 	}
-	resMsg, err := json.Marshal(res)
-	if err != nil {
-		fmt.Println("Error converting messages to JSON:", err)
-		return
-	}
 
-	response.SendToAll(string(resMsg))
+	msgJson, _ := json.Marshal(msg)
+
+	response.SendToAll(string(msgJson))
 }

@@ -55,7 +55,7 @@ func (client *Client) Start(user string) {
 	uiActionCh, actionResChan := consl.Start()
 
 	// TODO - temp for development
-	client.customizeState(consl, user)
+	//client.customizeState(consl, user)
 
 	client.listenWsEvents(consl)
 

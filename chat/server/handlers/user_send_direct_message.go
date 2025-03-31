@@ -7,7 +7,6 @@ import (
 	"chat/server/weboscket"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 )
@@ -19,8 +18,6 @@ func HandleUserSendDirectMessage(
 	messageService *message.MessageService,
 	response *weboscket.Response,
 ) {
-	fmt.Printf("Handler HandleUserSendDirectMessage received message -> %+v\n", message)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
@@ -54,7 +51,7 @@ func HandleUserSendDirectMessage(
 	}
 
 	now := time.Now()
-	newMessage := messageService.CreateMessage(
+	newMsg := messageService.CreateMessage(
 		message.Payload.Message,
 		user.Id,
 		receiver.Id,
@@ -62,13 +59,9 @@ func HandleUserSendDirectMessage(
 		now.String(),
 	)
 
-	messageService.SaveMessage(newMessage)
+	messageService.SaveMessage(newMsg)
 
-	log.Println("User sent direct message")
+	newMsgJson, _ := json.Marshal(newMsg)
 
-	time.Sleep(2 * time.Second)
-
-	jsonMessage, _ := json.Marshal(newMessage)
-
-	response.SendMessageToUser(receiver.Id, string(jsonMessage))
+	response.SendMessageToUser(receiver.Id, string(newMsgJson))
 }

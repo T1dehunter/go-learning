@@ -5,7 +5,6 @@ import (
 	"chat/server/components/user"
 	"chat/server/weboscket"
 	"context"
-	"fmt"
 	"log"
 	"time"
 )
@@ -16,8 +15,6 @@ func HandleUserCreateRoom(
 	roomService *room.RoomService,
 	response *weboscket.Response,
 ) {
-	fmt.Printf("Handler HandleUserCreateDirectRoom received message -> %+v\n", message)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
@@ -42,6 +39,4 @@ func HandleUserCreateRoom(
 	roomService.SaveRoom(*room)
 
 	response.SendMessageToUser(roomCreator.Id, "Direct room created")
-
-	log.Println("Direct room created")
 }

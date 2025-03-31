@@ -17,6 +17,7 @@ type UserData struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
+
 type UserRoom struct {
 	ID    int        `json:"id"`
 	Name  string     `json:"name"`
@@ -42,6 +43,7 @@ type Message struct {
 	Text         string `json:"text"`
 	CreatedAt    string `json:"createdAt"`
 }
+
 type UserJoinedToRoomMsg struct {
 	Type    string `json:"type"`
 	Payload struct {
